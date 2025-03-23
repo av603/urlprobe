@@ -1,0 +1,28 @@
+name: GitHub Release Creator
+
+on:
+  push:
+    tags:
+      # Matches stable versions (1.0.0, 2.3.4, etc.)
+      - '*.*.*'
+      # Matches prerelease versions (1.0.0-rc.1, 1.0.0-alpha.1, etc.)
+      - '*.*.*-*'
+
+jobs:
+  create_release:
+    name: Create GitHub Release Object
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        generate_release_notes: true
+        token: ${{ secrets.GITHUB_TOKEN }}
+        tag_name: ${{ github.ref_name }}

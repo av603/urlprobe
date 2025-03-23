@@ -1,139 +1,97 @@
-# URL Prober
+# URL Probe
 
-A Python tool for network infrastructure probing and diagnostics.
+[![CI Status](https://github.com/av603/urlprobe/actions/workflows/test.yml/badge.svg)](https://github.com/av603/urlprobe/actions/workflows/test.yml)
+[![Code Coverage](https://codecov.io/gh/av603/urlprobe/branch/main/graph/badge.svg)](https://codecov.io/gh/av603/urlprobe)
 
-## Running the Application
+This tool helps test complex cloud network setups, like those with private services that have specific exit points. It's especially useful for checking if your cloud services can talk to each other within a virtual private cloud and those services can make requests to the outside world as expected.
 
-### Prerequisites
-- Python 3.9 or higher
-- Poetry (Python package manager)
+**Use Case** Say you have a Cloud Load Balancer, two Cloud Run services (Service A and Service B) and a Cloud Subnetwork with a static egress IP. You have deployed this infrastructure and want to verify that the Cloud Load Balancer can access Service A, that Service A can access Service B and that requests from Service B appear from the subnetwork static egress IP.
 
-### Installation
-
-1. Clone the repository:
-```bash
-# Using HTTPS
-git clone https://github.com/av603/url-prober.git
-
-# OR using SSH
-git clone git@github.com:av603/url-prober.git
-
-cd url-prober
+```
+    Internet
+        |
+        |
+    +-------+
+    |       |
+    | Cloud |
+    |  Run  |  (A) - Publicly Accessible
+    +-------+
+        | (Target URL Parameter)
+        |
+        v (Internal Network Traffic)
+    +-------+
+    |       |
+    | Cloud |
+    |  Run  |  (B) - Internal Service
+    +-------+
+        | (Outbound Request via Static IP)
+        |
+        v
+    +---------------+
+    | External      |
+    | Target Server |
+    +---------------+
 ```
 
-2. Install with Poetry:
-```bash
-poetry install
-```
-
-### Starting the Server
-
-Basic usage:
-```bash
-poetry run url-prober serve
-```
-
-The server will start with default settings:
-- Host: 127.0.0.1 (localhost only)
-- Port: 5000
-- Debug mode: off
-
-### Custom Configuration
-
-You can customize the server settings:
+The network connectivity and the public IP can be verified by deploying the `urlprobe` tool to Service A and Service B and sending a chained `curl` request to the exposed service and requesting the public IP from `https://api.ipify.org` as the last step in the chain. For example, if the network is configured as per this use case, a `curl` request:
 
 ```bash
-# Run on a different port
-poetry run url-prober serve --port 8080
-
-# Make accessible from other machines
-poetry run url-prober serve --host 0.0.0.0
-
-# Enable debug mode (auto-reload on code changes)
-poetry run url-prober serve --debug
-
-# Combine options
-poetry run url-prober serve --host 0.0.0.0 --port 8080 --debug
+curl -s http://external-cloud-run-service-a-ip/?url=http://internal-cloud-run-service-b-ip/?url=https://api.ipify.org?format=json
 ```
 
-### Available Endpoints
+will be received at Service A, then at Service B and finally at `https://api.ipify.org` will return the public IP.
 
-- Health Check: `http://127.0.0.1:5000/health`
-  - Returns: `{"status": "healthy"}`
+## Installation
 
-## Development Setup
+The `urlprobe` tool is available on PiPy and can be installed via pip:
 
-### Pre-commit Hooks
-
-1. Install the pre-commit hooks:
+1.  **Install Python 3.10+:** Ensure you have Python 3.10 or a later version installed.
+2.  **Install the package from PyPI using pip:**
 ```bash
-poetry run pre-commit install
+pip install urlprobe
 ```
-
-### Code Style
-
-The project enforces code quality through pre-commit hooks:
-- Black for code formatting
-- isort for import sorting
-- flake8 for linting:
-  - Maximum line length: 79 characters (PEP 8)
-  - Maximum complexity: 10
-  - Docstring checks enabled
-- Basic file checks (trailing whitespace, YAML syntax, etc.)
-
-These checks run automatically on commit. To run manually:
+3.  **(optional) Install the package from TestPyPI using pip:**
 ```bash
-poetry run pre-commit run --all-files
+pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ urlprobe
 ```
 
-### Editor Configuration
+How you deploy the `urlprobe` tool depends on the type of infrastructure under test e.g. packaged as a `Docker` image or deployed as a cloud function.
 
-The project includes an `.editorconfig` file to maintain consistent coding styles:
-- UTF-8 encoding
-- Unix-style line endings
-- 4 spaces for Python indentation
-- 79 character line length for Python files
-- 2 spaces for YAML files
+## Usage
 
-## Testing
+### Running as a standalone application
 
-Run the test suite:
+1.  **Run the server:**
 ```bash
-poetry run pytest
+python -m urlprobe
 ```
 
-With coverage report:
+**(optionally) run the server with non-default args**
 ```bash
-poetry run pytest --cov=src/
+python -m urlprobe --host 0.0.0.0 --port 8081 --debug
 ```
 
-### Managing Lock File
-
-1. Update lock file without installing packages:
+2.  **Send a GET request to the server with the `url` parameter:**
 ```bash
-poetry lock --no-update
+curl -s "http://<edge-service-ip>:8080/?url=https://<internal-service-ip>"
 ```
 
-2. Update lock file and install packages:
+Replace `<edge-service-ip>` with the IP address or hostname of your externally accessible edge service. For example, when running as a standalone application on localhost:
+
 ```bash
-poetry lock
+curl -s "http://localhost:8080/?url=https://api.ipify.org?format=json"
 ```
 
-3. Check if lock file is up to date with pyproject.toml:
-```bash
-poetry lock --check
-```
+## Output
 
-4. Force update lock file (if you're having issues):
-```bash
-poetry lock --no-cache
-```
+The server will return a JSON object containing detailed information the request chain, including:
 
-Note: The lock file (`poetry.lock`) ensures that all developers use the exact same package versions. Always commit this file to version control.
+* **Edge Service Response:** Status code, headers, and body from the target service."
+* **Error Messages:** Detailed error messages for any failures encountered during the request chain.
 
 ## Contributing
 
-Please see [Contributing Guidelines](CONTRIBUTING.md) for details on:
+Please see [Contributing Guidelines](https://github.com/av603/urlprobe/blob/main/CONTRIBUTING.md) for details on:
 
 - Setting up your development environment
 - Code style and standards
@@ -142,8 +100,8 @@ Please see [Contributing Guidelines](CONTRIBUTING.md) for details on:
 
 # Versioning
 
-This project follows [Semantic Versioning](https://semver.org/). For the versions available, see the [tags on this repository](https://github.com/av603/url-prober/tags).
+This project follows [Semantic Versioning](https://semver.org/). For the versions available, see the [tags on this repository](https://github.com/av603/urlprobe/tags).
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](https://github.com/av603/urlprobe/blob/main/LICENSE) file for details.

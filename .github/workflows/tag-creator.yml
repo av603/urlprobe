@@ -1,0 +1,63 @@
+name: GitHub Tag Creator
+
+on:
+  workflow_run:
+    workflows: ["Tests"]
+    types:
+      - completed
+    branches:
+      - main
+
+jobs:
+  tag:
+    name: Semantic Tagging
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    permissions:
+      contents: write
+
+    steps:
+    - name: Extract Branch Name for Checkout
+      id: extract_branch
+      run: |
+        echo "branch=${{ github.event.workflow_run.head_branch }}" >> $GITHUB_OUTPUT
+
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+        ref: ${{ steps.extract_branch.outputs.branch }}
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install Poetry and Dependencies
+      uses: snok/install-poetry@v1
+
+    - name: Install Semantic Release
+      run: poetry install --only dev
+
+    - name: Configure Git
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+
+    - name: Initialize Semantic Version (if needed)
+      run: |
+        if [ -z "$(git tag -l | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$')" ]; then
+          echo "No semantic tags found. Creating initial tag 0.0.0."
+          git tag 0.0.0
+          git push origin 0.0.0
+        else
+          echo "Semantic tags already exist. Skipping initialization."
+        fi
+
+    - name: Automated Version Bump, Changelog, and Tag Push
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        poetry run semantic-release publish
