@@ -30,5 +30,7 @@ jobs:
       run: poetry install --only dev
 
     - name: Automated Version Bump, Changelog, and Tag Push
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         poetry run semantic-release publish
