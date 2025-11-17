@@ -22,6 +22,7 @@ pre-commit = "^4.0.0"
 mypy = "^1.7.1"
 types-requests = "^2.31.0"
 types-toml = "^0.10.8"
+python-semantic-release = "^8.0.0"
 
 [tool.poetry.scripts]
 urlprobe = "urlprobe.__main__:main"
@@ -29,3 +30,31 @@ urlprobe = "urlprobe.__main__:main"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.semantic_release]
+version_variable = "pyproject.toml:version"
+branch = "main"
+upload_to_pypi = false
+build_command = "poetry build"
+commit_parser = "semantic_release.commit_parser:default_parser"
+tag_commit = true
+tag_format = "{version}"
+changelog_file = "CHANGELOG.md"
+changelog_header = """
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+"""
+
+changelog_sections = [
+    { section = "Features", hidden = false, tags = ["feat"] },
+    { section = "Bug Fixes", hidden = false, tags = ["fix"] },
+    { section = "Documentation", hidden = false, tags = ["docs"] },
+    { section = "Refactoring", hidden = false, tags = ["refactor"] },
+    { section = "Dependencies", hidden = false, tags = ["chore", "build"] },
+    { section = "Performance", hidden = false, tags = ["perf"] },
+    { section = "Continuous Integration", hidden = true, tags = ["ci"] },
+]
