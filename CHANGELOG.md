@@ -7,6 +7,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Changed
 - Renamed tool from `urlprober` to `urlprobe`.
 
+### Added
+- Set up GitHub Actions to automatically run checks.
+- Add CodeCoverage metric.
+
 ## 0.2.1 (2025-05-31)
 
 ### Fixed

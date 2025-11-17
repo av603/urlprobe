@@ -1,5 +1,8 @@
 # URL Prober
 
+[![CI Status](https://github.com/av603/urlprober/actions/workflows/ci.yml/badge.svg)](https://github.com/av603/urlprober/actions/workflows/ci.yml)
+[![Code Coverage](https://codecov.io/gh/av603/urlprober/branch/main/graph/badge.svg)](https://codecov.io/gh/av603/urlprober)
+
 This tool helps test complex cloud network setups, like those with private services that have specific exit points. It's especially useful for checking if your cloud services can talk to each other within a virtual private cloud and those services can make requests to the outside world as expected.
 
 **Use Case** Say you have a Cloud Load Balancer, two Cloud Run services (Service A and Service B) and a Cloud Subnetwork with a static egress IP. You have deployed this infrastructure and want to verify that the Cloud Load Balancer can access Service A, that Service A can access Service B and that requests from Service B appear from the subnetwork static egress IP.
