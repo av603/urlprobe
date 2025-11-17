@@ -1,17 +1,16 @@
-name: Automated Release
+name: Automated Tag Creation
 
 on:
   push:
     branches: [ "main" ]
 
 jobs:
-  release:
-    name: Semantic Release
+  tag:
+    name: Semantic Tagging
     runs-on: ubuntu-latest
 
     permissions:
       contents: write
-      pull-requests: write
 
     steps:
     - uses: actions/checkout@v4
@@ -30,12 +29,6 @@ jobs:
     - name: Install Semantic Release
       run: poetry install --only dev
 
-    - name: Automated Version Bump and Tag
+    - name: Automated Version Bump, Changelog, and Tag Push
       run: |
         poetry run semantic-release publish
-
-    - name: Create GitHub Release
-      uses: softprops/action-gh-release@v2
-      with:
-        generate_release_notes: true
-        token: ${{ secrets.GITHUB_TOKEN }}
