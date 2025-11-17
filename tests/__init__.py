@@ -1,1 +1,1 @@
-"""Test suite for URL Prober."""
+"""Test suite for URL Probe."""

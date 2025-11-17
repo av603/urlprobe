@@ -1,4 +1,4 @@
-"""Utility functions for URL Prober."""
+"""Utility functions for URL Probe."""
 
 from urllib.parse import urlparse
 

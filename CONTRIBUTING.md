@@ -1,4 +1,4 @@
-# Contributing to URL Prober
+# Contributing to URL Probe
 
 This document provides guidelines and steps for contributing.
 
