@@ -2,7 +2,7 @@
 
 import pytest
 
-from urlprober.utils import is_valid_url
+from urlprobe.utils import is_valid_url
 
 
 @pytest.mark.parametrize(

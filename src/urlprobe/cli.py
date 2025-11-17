@@ -2,7 +2,7 @@
 
 import click
 
-from urlprober.app import create_app
+from urlprobe.app import create_app
 
 
 @click.group()
