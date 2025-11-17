@@ -3,8 +3,10 @@ name: GitHub Release Creator
 on:
   push:
     tags:
-      # Matches both stable (1.0.0) and prerelease (1.0.0-rc.1, 1.0.0-alpha.1, etc.) versions
-      - '[0-9]+.[0-9]+.[0-9]+(-[a-zA-Z0-9.-]+)?'
+      # Matches stable versions (1.0.0, 2.3.4, etc.)
+      - '*.*.*'
+      # Matches prerelease versions (1.0.0-rc.1, 1.0.0-alpha.1, etc.)
+      - '*.*.*-*'
 
 jobs:
   create_release:

@@ -22,7 +22,7 @@ jobs:
       with:
         fetch-depth: 0
         token: ${{ secrets.GITHUB_TOKEN }}
-        ref: ${{ github.event.workflow_run.head_sha }}
+        ref: ${{ github.event.workflow_run.head_branch }}
 
     - name: Set up Python 3.11
       uses: actions/setup-python@v5
