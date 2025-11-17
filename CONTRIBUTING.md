@@ -14,12 +14,12 @@ This document provides guidelines and steps for contributing.
 1. Fork the repository and clone your fork:
 ```bash
 # Using SSH (recommended)
-git clone git@github.com:your-username/urlprober.git
+git clone git@github.com:your-username/urlprobe.git
 
 # OR using HTTPS
-git clone https://github.com/your-username/urlprober.git
+git clone https://github.com/your-username/urlprobe.git
 
-cd urlprober
+cd urlprobe
 ```
 
 2. Install dependencies with Poetry:
@@ -36,7 +36,7 @@ poetry run pre-commit install
 
 Basic usage:
 ```bash
-poetry run urlprober
+poetry run urlprobe
 ```
 
 The server will start with default settings:
@@ -50,16 +50,16 @@ You can customize the server settings:
 
 ```bash
 # Run on a different port
-poetry run urlprober --port 8080
+poetry run urlprobe --port 8080
 
 # Make accessible from other machines
-poetry run urlprober --host 0.0.0.0
+poetry run urlprobe --host 0.0.0.0
 
 # Enable debug mode (auto-reload on code changes)
-poetry run urlprober --debug
+poetry run urlprobe --debug
 
 # Combine options
-poetry run urlprober --host 0.0.0.0 --port 8080 --debug
+poetry run urlprobe --host 0.0.0.0 --port 8080 --debug
 ```
 
 ### Editor Configuration

@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 import pytest
 
-from urlprober.app import create_app
+from urlprobe.app import create_app
 
 
 @pytest.fixture
@@ -21,7 +21,7 @@ def client():
 
 def test_health_endpoint(client):
     """Test the health check endpoint returns correct response."""
-    version = importlib.metadata.version("urlprober")
+    version = importlib.metadata.version("urlprobe")
 
     response = client.get("/health")
     assert response.status_code == 200
@@ -45,6 +45,6 @@ def test_handle_request_method_not_allowed(client):
 
 def test_handle_request_with_url(client):
     """Test handle_request with a URL parameter."""
-    with patch("urlprober.app.handle_request"):
+    with patch("urlprobe.app.handle_request"):
         response = client.get("/?url=https://example.com")
     assert response.status_code == 200

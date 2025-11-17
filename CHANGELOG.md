@@ -2,6 +2,11 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## 0.2.2 (2025-11-17)
+
+### Changed
+- Renamed tool from `urlprober` to `urlprobe`.
+
 ## 0.2.1 (2025-05-31)
 
 ### Fixed
@@ -30,4 +35,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Added
 
-- Initial release of `urlprober` app.
+- Initial release of `urlprobe` app.

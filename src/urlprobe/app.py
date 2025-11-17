@@ -10,7 +10,7 @@ import requests
 import toml
 from flask import Flask, jsonify, request
 
-from urlprober.utils import is_valid_url
+from urlprobe.utils import is_valid_url
 
 # Configure logging at module level
 logging.basicConfig(
@@ -113,11 +113,11 @@ def health_check():
             {"status": "healthy", "version": "x.y.z"}
     """
     try:
-        version = importlib.metadata.version("urlprober")
+        version = importlib.metadata.version("urlprobe")
         logger.info("Health check requested, version: %s", version)
     except importlib.metadata.PackageNotFoundError:
         logger.warning(
-            "Package 'urlprober' not found. Unable to determine version."
+            "Package 'urlprobe' not found. Unable to determine version."
         )
         version = "unknown"
 

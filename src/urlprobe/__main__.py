@@ -1,20 +1,20 @@
 """
-Command-line entry point for the urlprober Flask application.
+Command-line entry point for the urlprobe Flask application.
 
 This script parses command-line arguments for configuring the host,
-port, and debug mode of the urlprober web service and then starts
+port, and debug mode of the urlprobe web service and then starts
 the Flask development server.
 """
 
 import argparse
 
-from urlprober.app import create_app, logger
+from urlprobe.app import create_app, logger
 
 
 def main():
-    """Entry point for the urlprober Flask application."""
+    """Entry point for the urlprobe Flask application."""
     parser = argparse.ArgumentParser(
-        description="Run the urlprober application."
+        description="Run the urlprobe application."
     )
     parser.add_argument(
         "--host",
@@ -39,7 +39,7 @@ def main():
     app = create_app()
 
     logger.info(
-        f"Starting urlprober on host {args.host}, port {args.port}, "
+        f"Starting urlprobe on host {args.host}, port {args.port}, "
         f"debug={args.debug}"
     )
     app.run(host=args.host, port=args.port, debug=args.debug)
