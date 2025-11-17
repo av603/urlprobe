@@ -1,4 +1,4 @@
-"""Provide command line interface for URL Prober."""
+"""Provide command line interface for URL Probe."""
 
 import click
 
@@ -7,7 +7,7 @@ from urlprobe.app import create_app
 
 @click.group()
 def cli():
-    """Define URL Prober CLI group."""
+    """Define URL Probe CLI group."""
     pass
 
 

@@ -1,4 +1,4 @@
-"""Tests for URL Prober utility functions."""
+"""Tests for URL Probe utility functions."""
 
 import pytest
 

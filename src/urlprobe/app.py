@@ -1,4 +1,4 @@
-"""Flask application module for URL Prober."""
+"""Flask application module for URL Probe."""
 
 import importlib.metadata
 import logging
