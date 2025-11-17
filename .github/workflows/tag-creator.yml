@@ -18,11 +18,17 @@ jobs:
       contents: write
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Extract Branch Name for Checkout
+      id: extract_branch
+      run: |
+        echo "branch=${{ github.event.workflow_run.head_branch }}" >> $GITHUB_OUTPUT
+
+    - name: Checkout Repository
+      uses: actions/checkout@v4
       with:
         fetch-depth: 0
         token: ${{ secrets.GITHUB_TOKEN }}
-        ref: ${{ github.event.workflow_run.head_sha }}
+        ref: ${{ steps.extract_branch.outputs.branch }}
 
     - name: Set up Python 3.11
       uses: actions/setup-python@v5
