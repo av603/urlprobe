@@ -1,13 +1,18 @@
 name: Automated Tag Creation
 
 on:
-  push:
-    branches: [ "main" ]
+  workflow_run:
+    workflows: ["CI"]
+    types:
+      - completed
+    branches:
+      - main
 
 jobs:
   tag:
     name: Semantic Tagging
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
 
     permissions:
       contents: write
@@ -17,6 +22,7 @@ jobs:
       with:
         fetch-depth: 0
         token: ${{ secrets.GITHUB_TOKEN }}
+        ref: ${{ github.event.workflow_run.head_sha }}
 
     - name: Set up Python 3.11
       uses: actions/setup-python@v5
@@ -29,8 +35,13 @@ jobs:
     - name: Install Semantic Release
       run: poetry install --only dev
 
+    - name: Configure Git
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+
     - name: Automated Version Bump, Changelog, and Tag Push
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        poetry run semantic-release publish
+        poetry run semantic-release publish --verbosity DEBUG

@@ -37,25 +37,15 @@ jobs:
     - name: Static Type Check with Mypy
       run: poetry run mypy src/
 
-    - name: Check version bump
-      if: github.event_name == 'pull_request' && contains(github.event.pull_request.files.*.filename, 'pyproject.toml')
+    - name: Prevent manual version changes
+      if: github.event_name == 'pull_request'
       run: |
-        # Get current version from pyproject.toml
-        NEW_VERSION=$(poetry version -s)
-
-        # Get the latest tag
-        LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
-        LATEST_VERSION=${LATEST_TAG#v}
-
-        # Compare versions
-        if [ "$(printf '%s\n' "$LATEST_VERSION" "$NEW_VERSION" | sort -V | head -n1)" = "$NEW_VERSION" ]; then
-          echo "Error: New version ($NEW_VERSION) must be greater than latest version ($LATEST_VERSION)"
-          exit 1
-        fi
-
-        # Ensure version follows semantic versioning (X.Y.Z)
-        if ! [[ $NEW_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-          echo "Error: Version ($NEW_VERSION) must follow semantic versioning (X.Y.Z)"
+        # Check if version in pyproject.toml was manually changed
+        # Semantic-release automatically handles version bumps, so manual changes should be avoided
+        if git diff ${{ github.event.pull_request.base.sha }}...${{ github.event.pull_request.head.sha }} -- pyproject.toml | grep -q "^[-+].*version.*="; then
+          echo "::error::Version in pyproject.toml should not be manually changed."
+          echo "::error::Semantic-release automatically handles version bumps based on conventional commit messages."
+          echo "::error::Use commit messages like 'feat:', 'fix:', or 'feat!:' to trigger version bumps."
           exit 1
         fi
 
