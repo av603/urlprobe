@@ -32,7 +32,7 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.semantic_release]
-version_variable = "pyproject.toml:version"
+version_toml = ["pyproject.toml:tool.poetry.version"]
 branch = "main"
 upload_to_pypi = false
 build_command = "poetry build"

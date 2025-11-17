@@ -1,12 +1,8 @@
 name: Publish to PyPI and TestPyPI
 
 on:
-  workflow_run:
-    workflows: ["GitHub Release Creator"]
-    types:
-      - completed
-    branches:
-      - main
+  release:
+    types: [published]
 
 jobs:
   publish:

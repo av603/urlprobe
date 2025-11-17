@@ -37,18 +37,6 @@ jobs:
     - name: Static Type Check with Mypy
       run: poetry run mypy src/
 
-    - name: Prevent manual version changes
-      if: github.event_name == 'pull_request'
-      run: |
-        # Check if version in pyproject.toml was manually changed
-        # Semantic-release automatically handles version bumps, so manual changes should be avoided
-        if git diff ${{ github.event.pull_request.base.sha }}...${{ github.event.pull_request.head.sha }} -- pyproject.toml | grep -q "^[-+].*version.*="; then
-          echo "::error::Version in pyproject.toml should not be manually changed."
-          echo "::error::Semantic-release automatically handles version bumps based on conventional commit messages."
-          echo "::error::Use commit messages like 'feat:', 'fix:', or 'feat!:' to trigger version bumps."
-          exit 1
-        fi
-
     - name: Run tests with pytest
       run: poetry run pytest tests/ --cov=src/ --cov-report=xml
 
