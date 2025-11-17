@@ -1,12 +1,12 @@
 name: GitHub Release Creator
 
 on:
-  push:
-    tags:
-      # Matches stable versions (1.0.0, 2.3.4, etc.)
-      - '*.*.*'
-      # Matches prerelease versions (1.0.0-rc.1, 1.0.0-alpha.1, etc.)
-      - '*.*.*-*'
+  workflow_run:
+    workflows: ["GitHub Tag Creator"]
+    types:
+      - completed
+    branches:
+      - main
 
 jobs:
   create_release:

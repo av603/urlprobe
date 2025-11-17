@@ -1,8 +1,8 @@
-name: Automated Tag Creation
+name: GitHub Tag Creator
 
 on:
   workflow_run:
-    workflows: ["CI"]
+    workflows: ["Tests and Linting"]
     types:
       - completed
     branches:
@@ -44,4 +44,4 @@ jobs:
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        poetry run semantic-release publish --verbosity DEBUG
+        poetry run semantic-release publish -v
