@@ -36,7 +36,6 @@ version_variable = "pyproject.toml:version"
 branch = "main"
 upload_to_pypi = false
 build_command = "poetry build"
-commit_parser = "semantic_release.commit_parser:default_parser"
 tag_commit = true
 tag_format = "{version}"
 changelog_file = "CHANGELOG.md"
