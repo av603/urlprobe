@@ -22,7 +22,7 @@ jobs:
       with:
         fetch-depth: 0
         token: ${{ secrets.GITHUB_TOKEN }}
-        ref: ${{ github.event.workflow_run.head_branch }}
+        ref: ${{ github.event.workflow_run.head_sha }}
 
     - name: Set up Python 3.11
       uses: actions/setup-python@v5
@@ -42,11 +42,9 @@ jobs:
 
     - name: Initialize Semantic Version (if needed)
       run: |
-        # Check if any X.Y.Z tags exist
         if [ -z "$(git tag -l | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$')" ]; then
           echo "No semantic tags found. Creating initial tag 0.0.0."
           git tag 0.0.0
-          # Push the initial tag immediately so semantic-release sees it
           git push origin 0.0.0
         else
           echo "Semantic tags already exist. Skipping initialization."
