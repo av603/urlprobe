@@ -56,4 +56,4 @@ jobs:
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        poetry run semantic-release publish --tag-format "{version}"
+        poetry run semantic-release publish
