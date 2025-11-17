@@ -3,7 +3,8 @@ name: Publish
 on:
   push:
     tags:
-      - '[0-9]+.[0-9]+.[0-9]+'
+      # Matches both stable (1.0.0) and prerelease (1.0.0-rc.1, 1.0.0-alpha.1, etc.) versions
+      - '[0-9]+.[0-9]+.[0-9]+(-[a-zA-Z0-9.-]+)?'
 
 jobs:
   publish:
@@ -39,7 +40,7 @@ jobs:
         with:
           repository-url: https://test.pypi.org/legacy/
       - name: Publish to PyPI
-        if: github.event.release.prerelease == false
+        if: "!contains(github.ref, 'alpha') && !contains(github.ref, 'beta') && !contains(github.ref, 'rc')"
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           repository-url: https://upload.pypi.org/legacy/
