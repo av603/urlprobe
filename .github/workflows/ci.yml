@@ -16,7 +16,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
       with:
-        fetch-depth: 0  # Fetch all history for all tags and branches
+        fetch-depth: 0
 
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
@@ -29,13 +29,16 @@ jobs:
         pip install poetry
 
     - name: Install dependencies
-      run: poetry install
+      run: poetry install --with dev
 
     - name: Run pre-commit checks
       uses: pre-commit/action@v3.0.1
 
+    - name: Static Type Check with Mypy
+      run: poetry run mypy src/
+
     - name: Check version bump
-      if: github.event_name == 'pull_request' && contains(github.event.pull_request.files, 'pyproject.toml')
+      if: github.event_name == 'pull_request' && contains(github.event.pull_request.files.*.filename, 'pyproject.toml')
       run: |
         # Get current version from pyproject.toml
         NEW_VERSION=$(poetry version -s)
@@ -62,4 +65,5 @@ jobs:
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v5
       with:
-        file: ./coverage.xml
+        files: ./coverage.xml
+        fail_ci_if_error: true
