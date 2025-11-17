@@ -1,6 +1,6 @@
 # URL Probe
 
-[![CI Status](https://github.com/av603/urlprobe/actions/workflows/ci.yml/badge.svg)](https://github.com/av603/urlprobe/actions/workflows/ci.yml)
+[![CI Status](https://github.com/av603/urlprobe/actions/workflows/test.yml/badge.svg)](https://github.com/av603/urlprobe/actions/workflows/test.yml)
 [![Code Coverage](https://codecov.io/gh/av603/urlprobe/branch/main/graph/badge.svg)](https://codecov.io/gh/av603/urlprobe)
 
 This tool helps test complex cloud network setups, like those with private services that have specific exit points. It's especially useful for checking if your cloud services can talk to each other within a virtual private cloud and those services can make requests to the outside world as expected.

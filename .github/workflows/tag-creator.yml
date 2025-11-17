@@ -2,7 +2,7 @@ name: GitHub Tag Creator
 
 on:
   workflow_run:
-    workflows: ["Tests and Linting"]
+    workflows: ["Tests"]
     types:
       - completed
     branches:
