@@ -1,3 +1,5 @@
+name: GitHub Release Creator
+
 on:
   workflow_run:
     workflows: ["Tests"]
@@ -23,6 +25,12 @@ jobs:
         fetch-depth: 0
         token: ${{ secrets.GITHUB_TOKEN }}
 
+    - name: Attach HEAD to the 'main' branch
+      run: |
+        BRANCH_NAME=${{ github.event.workflow_run.head_branch }}
+        git checkout $BRANCH_NAME
+        echo "Current branch: $(git rev-parse --abbrev-ref HEAD)"
+
     - name: Set up Python 3.11
       uses: actions/setup-python@v5
       with:
@@ -46,5 +54,4 @@ jobs:
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        # Use 'publish' which performs tagging, pushing, and uploading
         poetry run semantic-release publish
