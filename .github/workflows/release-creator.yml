@@ -1,28 +1,50 @@
-name: GitHub Release Creator
-
 on:
-  push:
-    tags:
-      # Matches stable versions (1.0.0, 2.3.4, etc.)
-      - '*.*.*'
-      # Matches prerelease versions (1.0.0-rc.1, 1.0.0-alpha.1, etc.)
-      - '*.*.*-*'
+  workflow_run:
+    workflows: ["Tests"]
+    types:
+      - completed
+    branches:
+      - main
 
 jobs:
-  create_release:
-    name: Create GitHub Release Object
+  tag:
+    name: Semantic Tagging & Release
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
 
     permissions:
       contents: write
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout Repository on Correct Commit
+      uses: actions/checkout@v4
       with:
+        ref: ${{ github.event.workflow_run.head_sha }}
         fetch-depth: 0
-    - name: Create GitHub Release
-      uses: softprops/action-gh-release@v2
-      with:
-        generate_release_notes: true
         token: ${{ secrets.GITHUB_TOKEN }}
-        tag_name: ${{ github.ref_name }}
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install Poetry and Dependencies
+      uses: snok/install-poetry@v1
+
+    - name: Install Semantic Release
+      run: poetry install --only dev
+
+    - name: Configure Git
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+
+    - name: 📦 Build Package Artifacts
+      run: poetry build
+
+    - name: Automated Version Bump, Changelog, and Tag Push
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        # Use 'publish' which performs tagging, pushing, and uploading
+        poetry run semantic-release publish
