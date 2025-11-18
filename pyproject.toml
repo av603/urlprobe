@@ -36,6 +36,7 @@ version_toml = ["pyproject.toml:tool.poetry.version"]
 branch = "main"
 upload_to_pypi = false
 build_command = "poetry build"
+upload_dists = true
 tag_commit = true
 tag_format = "{version}"
 changelog_file = "CHANGELOG.md"
