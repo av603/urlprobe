@@ -1,17 +1,13 @@
 name: Create Release
 
 on:
-  workflow_run:
-    workflows: ["Tests"]
-    types:
-      - completed
-    branches:
-      - main
+  push:
+    branches: [ main ]
 
 jobs:
   run-tests:
     name: Run Tests
-    uses: ./.github/workflows/tests.yml
+    uses: ./.github/workflows/test.yml
     with:
       python-versions: '["3.10", "3.11", "3.12"]'
     secrets: inherit
