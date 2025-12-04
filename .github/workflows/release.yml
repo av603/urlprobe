@@ -1,4 +1,4 @@
-name: GitHub Release Creator
+name: Create Release
 
 on:
   workflow_run:
@@ -9,6 +9,13 @@ on:
       - main
 
 jobs:
+  run-tests:
+    name: Run Tests
+    uses: ./.github/workflows/tests.yml
+    with:
+      python-versions: '["3.10", "3.11", "3.12"]'
+    secrets: inherit
+
   tag:
     name: Semantic Tagging & Release
     runs-on: ubuntu-latest

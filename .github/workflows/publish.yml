@@ -1,12 +1,19 @@
-name: Publish to PyPI and TestPyPI
+name: Publish Release
 
 on:
   release:
     types: [published]
 
 jobs:
+  run-tests:
+    name: Run Tests
+    uses: ./.github/workflows/tests.yml
+    with:
+      python-versions: '["3.10", "3.11", "3.12"]'
+    secrets: inherit
+
   publish:
-    name: Publish
+    name: Publish to TestPyPI and PyPI
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
