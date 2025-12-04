@@ -9,7 +9,7 @@ jobs:
     name: Run Tests
     uses: ./.github/workflows/test.yml
     with:
-      python-versions: '["3.11"]'
+      python-versions: '["3.10", "3.11", "3.12"]'
     secrets: inherit
 
   tag:
@@ -33,7 +33,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v6
       with:
-        python-version: '3.14'
+        python-version: '3.12'
         cache: 'poetry'
 
     - name: Install Dependencies
