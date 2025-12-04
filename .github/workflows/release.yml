@@ -15,46 +15,40 @@ jobs:
   tag:
     name: Semantic Tagging & Release
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
-
+    needs: run-tests
+    if: github.ref == 'refs/heads/main'
     permissions:
       contents: write
 
     steps:
-    - name: Checkout Repository on Correct Commit
+    - name: Checkout Repository
       uses: actions/checkout@v4
       with:
-        ref: ${{ github.event.workflow_run.head_sha }}
         fetch-depth: 0
         token: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Attach HEAD to the 'main' branch
-      run: |
-        BRANCH_NAME=${{ github.event.workflow_run.head_branch }}
-        git checkout $BRANCH_NAME
-        echo "Current branch: $(git rev-parse --abbrev-ref HEAD)"
+    - name: Install Poetry
+      run: pipx install poetry
 
     - name: Set up Python 3.11
       uses: actions/setup-python@v5
       with:
         python-version: '3.11'
+        cache: 'poetry'
 
-    - name: Install Poetry and Dependencies
-      uses: snok/install-poetry@v1
+    - name: Install Dependencies
+      run: poetry install --with dev --no-interaction
 
-    - name: Install Semantic Release
-      run: poetry install --only dev
-
-    - name: Configure Git
+    # Ensure we are on the branch, not detached HEAD, so we can push tags back
+    - name: Switch to main branch
       run: |
-        git config user.name "github-actions[bot]"
-        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git checkout main
+        git pull origin main
 
-    - name: Build Package Artifacts
-      run: poetry build
-
-    - name: Automated Version Bump, Changelog, and Tag Push
+    - name: Python Semantic Release
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
         poetry run semantic-release publish
