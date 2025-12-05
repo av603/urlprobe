@@ -12,43 +12,44 @@ jobs:
       python-versions: '["3.10", "3.11", "3.12"]'
     secrets: inherit
 
-  tag:
+  release:
     name: Semantic Tagging & Release
-    runs-on: ubuntu-latest
     needs: run-tests
+    runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
     permissions:
       contents: write
 
     steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v6
-      with:
-        fetch-depth: 0
-        token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-    - name: Install Poetry
-      run: pipx install poetry
+      - name: Switch to main branch
+        run: |
+          git checkout main
+          git pull origin main
 
-    - name: Set up Python
-      uses: actions/setup-python@v6
-      with:
-        python-version: '3.12'
-        cache: 'poetry'
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: 3.13
 
-    - name: Install Dependencies
-      run: poetry install --with dev --no-interaction
+      - name: Install Poetry
+        run: uv tool install poetry
 
-    # Ensure we are on the branch, not detached HEAD, so we can push tags back
-    - name: Switch to main branch
-      run: |
-        git checkout main
-        git pull origin main
+      - name: Configure Git User
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
 
-    - name: Python Semantic Release
-      env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: |
-        git config user.name "github-actions[bot]"
-        git config user.email "github-actions[bot]@users.noreply.github.com"
-        poetry run semantic-release publish
+      - name: Run semantic-release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          sr() {
+            uvx --from="python-semantic-release@9.21.1" semantic-release "$@"
+          }
+
+          sr version
+          sr publish
