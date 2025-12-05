@@ -41,21 +41,3 @@ tag_commit = true
 tag_format = "{version}"
 commit_parser = "angular"
 changelog_file = "CHANGELOG.md"
-changelog_header = """
-# Changelog
-
-All notable changes to this project will be documented in this file.
-
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-"""
-
-changelog_sections = [
-    { section = "Features", hidden = false, tags = ["feat"] },
-    { section = "Bug Fixes", hidden = false, tags = ["fix"] },
-    { section = "Documentation", hidden = false, tags = ["docs"] },
-    { section = "Refactoring", hidden = false, tags = ["refactor"] },
-    { section = "Dependencies", hidden = false, tags = ["chore", "build"] },
-    { section = "Performance", hidden = false, tags = ["perf"] },
-    { section = "Continuous Integration", hidden = true, tags = ["ci"] },
-]
