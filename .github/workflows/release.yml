@@ -47,9 +47,30 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          sr() {
-            uvx --from="python-semantic-release@9.21.1" semantic-release "$@"
-          }
+          # Run 'version' to bump local files, then 'publish' to push to GitHub
+          uvx --from "python-semantic-release>=9.0.0" semantic-release version
+          uvx --from "python-semantic-release>=9.0.0" semantic-release publish
 
-          sr version
-          sr publish
+      - name: Build Package
+        run: poetry build
+
+      - name: Verify version matches tag
+        run: |
+          VERSION=$(poetry version -s)
+          TAG=${GITHUB_REF#refs/tags/}
+          if [ "$VERSION" != "$TAG" ]; then
+            echo "Error: Version in pyproject.toml ($VERSION) does not match tag ($TAG)"
+            exit 1
+          fi
+
+      - name: Publish to TestPyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+
+      - name: Publish to PyPI
+        if: "!contains(github.ref, 'alpha') && !contains(github.ref, 'beta') && !contains(github.ref, 'rc')"
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://upload.pypi.org/legacy/
+          attestations: false
