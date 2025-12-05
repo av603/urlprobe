@@ -4,6 +4,9 @@ on:
   push:
     branches: [ main ]
 
+permissions:
+  contents: read
+
 jobs:
   run-tests:
     name: Run Tests
@@ -12,43 +15,54 @@ jobs:
       python-versions: '["3.10", "3.11", "3.12"]'
     secrets: inherit
 
-  tag:
-    name: Semantic Tagging & Release
-    runs-on: ubuntu-latest
+  release:
     needs: run-tests
-    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: ${{ github.workflow }}-release-${{ github.ref_name }}
+      cancel-in-progress: false
+
     permissions:
       contents: write
 
     steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v6
-      with:
-        fetch-depth: 0
-        token: ${{ secrets.GITHUB_TOKEN }}
+      # Note: We checkout the repository at the branch that triggered the workflow.
+      # Python Semantic Release will automatically convert shallow clones to full clones
+      # if needed to ensure proper history evaluation. However, we forcefully reset the
+      # branch to the workflow sha because it is possible that the branch was updated
+      # while the workflow was running, which prevents accidentally releasing un-evaluated
+      # changes.
+      - name: Setup | Checkout Repository on Release Branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
 
-    - name: Install Poetry
-      run: pipx install poetry
+      - name: Setup | Force release branch to be at workflow sha
+        run: |
+          git reset --hard ${{ github.sha }}
 
-    - name: Set up Python
-      uses: actions/setup-python@v6
-      with:
-        python-version: '3.12'
-        cache: 'poetry'
+      - name: Action | Semantic Version Release
+        id: release
+        # Adjust tag with desired version if applicable.
+        uses: python-semantic-release/python-semantic-release@v10.5.2
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          git_committer_name: "github-actions"
+          git_committer_email: "actions@users.noreply.github.com"
 
-    - name: Install Dependencies
-      run: poetry install --with dev --no-interaction
+      - name: Publish | Upload to GitHub Release Assets
+        uses: python-semantic-release/publish-action@v10.5.2
+        if: steps.release.outputs.released == 'true'
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ steps.release.outputs.tag }}
 
-    # Ensure we are on the branch, not detached HEAD, so we can push tags back
-    - name: Switch to main branch
-      run: |
-        git checkout main
-        git pull origin main
+      - name: Upload | Distribution Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: distribution-artifacts
+          path: dist
+          if-no-files-found: error
 
-    - name: Python Semantic Release
-      env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: |
-        git config user.name "github-actions[bot]"
-        git config user.email "github-actions[bot]@users.noreply.github.com"
-        poetry run semantic-release publish
+    outputs:
+      released: ${{ steps.release.outputs.released || 'false' }}
