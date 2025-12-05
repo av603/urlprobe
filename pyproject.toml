@@ -34,10 +34,12 @@ build-backend = "poetry.core.masonry.api"
 [tool.semantic_release]
 version_toml = ["pyproject.toml:tool.poetry.version"]
 branch = "main"
+major_on_zero = false
+upload_to_release = true
 upload_to_pypi = false
 build_command = "poetry build"
 upload_dists = true
 tag_commit = true
 tag_format = "{version}"
-commit_parser = "angular"
+commit_parser = "conventional"
 changelog_file = "CHANGELOG.md"
