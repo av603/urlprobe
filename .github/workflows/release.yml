@@ -66,19 +66,18 @@ jobs:
         run: |
           uvx --from "python-semantic-release>=9.0.0" semantic-release publish
 
+      - name: Build Package
+        run: poetry build
 
-      # - name: Build Package
-      #   run: poetry build
+      - name: Publish to TestPyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
 
-      # - name: Publish to TestPyPI
-      #   uses: pypa/gh-action-pypi-publish@release/v1
-      #   with:
-      #     repository-url: https://test.pypi.org/legacy/
-
-      # - name: Publish to PyPI
-      #   # Only publish if this isn't a pre-release (alpha/beta)
-      #   if: "!contains(github.ref, 'alpha') && !contains(github.ref, 'beta') && !contains(github.ref, 'rc')"
-      #   uses: pypa/gh-action-pypi-publish@release/v1
-      #   with:
-      #     repository-url: https://upload.pypi.org/legacy/
-      #     verbose: true
+      - name: Publish to PyPI
+        # Only publish if this isn't a pre-release (alpha/beta)
+        if: "!contains(github.ref, 'alpha') && !contains(github.ref, 'beta') && !contains(github.ref, 'rc')"
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://upload.pypi.org/legacy/
+          verbose: true
