@@ -3,6 +3,13 @@ name: Release & Publish
 on:
   push:
     branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      force_publish:
+        description: 'Force publish even if no new version is detected'
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   run-tests:
@@ -78,19 +85,22 @@ jobs:
         run: poetry build
 
       - name: Publish to TestPyPI
-        if: steps.semantic.outputs.released == 'true'
+        if: steps.semantic.outputs.released == 'true' || github.event.inputs.force_publish == 'true'
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           repository-url: https://test.pypi.org/legacy/
+          attestations: false
+          skip-existing: true
 
       - name: Publish to PyPI
         # Only publish if this isn't a pre-release (alpha/beta)
         if:
-          steps.semantic.outputs.released == 'true' &&
+          (steps.semantic.outputs.released == 'true' || github.event.inputs.force_publish == 'true') &&
           !contains(github.ref, 'alpha') &&
           !contains(github.ref, 'beta') &&
           !contains(github.ref, 'rc')
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           repository-url: https://upload.pypi.org/legacy/
+          skip-existing: true
           verbose: true
