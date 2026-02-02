@@ -47,10 +47,18 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Version and Changelog (Local)
+        id: semantic
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           uvx --from "python-semantic-release>=9.0.0" semantic-release version
+
+          # Check if a new tag was created
+          if git describe --tags --exact-match HEAD >/dev/null 2>&1; then
+            echo "released=true" >> $GITHUB_OUTPUT
+          else
+            echo "released=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Commit changes (Local)
         run: |
@@ -70,13 +78,18 @@ jobs:
         run: poetry build
 
       - name: Publish to TestPyPI
+        if: steps.semantic.outputs.released == 'true'
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           repository-url: https://test.pypi.org/legacy/
 
       - name: Publish to PyPI
         # Only publish if this isn't a pre-release (alpha/beta)
-        if: "!contains(github.ref, 'alpha') && !contains(github.ref, 'beta') && !contains(github.ref, 'rc')"
+        if:
+          steps.semantic.outputs.released == 'true' &&
+          !contains(github.ref, 'alpha') &&
+          !contains(github.ref, 'beta') &&
+          !contains(github.ref, 'rc')
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           repository-url: https://upload.pypi.org/legacy/
