@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- version list -->
 
+## v1.1.0 (2026-02-02)
+
+### Chores
+
+- **deps**: Update dependency mypy to v1.19.1
+  ([`aa40616`](https://github.com/av603/urlprobe/commit/aa406160c0ec0e4e7674c147e3d3c80d6c50f296))
+
+- **deps**: Update dependency pre-commit to v4.5.1
+  ([`b790c44`](https://github.com/av603/urlprobe/commit/b790c444c49c0638198619744ac0f30bd92a1656))
+
+- **deps**: Update dependency pytest to v9.0.2
+  ([`3c82585`](https://github.com/av603/urlprobe/commit/3c8258541083eddd664f8a41f97ef1c0fefe7655))
+
+### Continuous Integration
+
+- **release**: Prevent pypi publish when no version bump
+  ([`493aee3`](https://github.com/av603/urlprobe/commit/493aee3eaf09c5f277d762e740e0892f86bb2157))
+
+- **release**: Prevent pypi publish when no version bump
+  ([`80dd1ae`](https://github.com/av603/urlprobe/commit/80dd1aeff3ca07dc0030a913e4040741cc711907))
+
+- **release**: Prevent pypi publish when no version bump
+  ([`23e7746`](https://github.com/av603/urlprobe/commit/23e774625ace970e4c59f157058d377c07f0497a))
+
+### Features
+
+- **probe**: Chained url probing
+  ([`1af6914`](https://github.com/av603/urlprobe/commit/1af6914d955a7f43a4a10c66d9238e8d1bf63ecf))
+
+
 ## v1.0.0 (2025-12-11)
 
 ### Bug Fixes
