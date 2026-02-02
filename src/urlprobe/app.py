@@ -1,10 +1,11 @@
 """Flask application module for URL Probe."""
 
 import importlib.metadata
+import json
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict
+from typing import Any, Dict
 
 import requests
 import toml
@@ -43,14 +44,10 @@ class Probe:
     url: str
 
     status_code: int = 0
-    elapsed_ms: int = 0
+    elapsed_ms: float = 0
     final_url: str = ""
     headers: Dict[str, str] = field(default_factory=dict)
-    body: str = ""
-
-    def to_json(self):
-        """Convert Probe to json."""
-        return jsonify(self.__dict__)
+    body: Any = ""
 
 
 def get_version() -> str:
@@ -75,7 +72,7 @@ def handle_request():
     """Handle probe requests.
 
     Returns:
-        Probe: Object containing response information
+        list[Probe]: list of probe objects containing response information
     """
     url = request.args.get("url")
 
@@ -86,14 +83,19 @@ def handle_request():
 
     # send request to the URL and get the response
     logger.info("Probing URL: %s", url)
-    resp = requests.request(
-        method=request.method,
-        url=url,
-        timeout=DEFAULT_TIMEOUT,
-        verify=VERIFY_SSL,
-    )
+    try:
+        resp = requests.request(
+            method=request.method,
+            url=url,
+            timeout=DEFAULT_TIMEOUT,
+            verify=VERIFY_SSL,
+        )
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Request to {url} failed: {e}")
+        error_probe = Probe(url=url, body=str(e), status_code=500)
+        return jsonify([error_probe.__dict__])
 
-    probe_response = Probe(
+    current_probe = Probe(
         url=url,
         status_code=resp.status_code,
         body=resp.text,
@@ -102,7 +104,19 @@ def handle_request():
         final_url=resp.url,
     )
 
-    return probe_response.to_json()
+    try:
+        downstream_probes = resp.json()
+        if isinstance(downstream_probes, list) and all(
+            isinstance(p, dict) and "url" in p for p in downstream_probes
+        ):
+            current_probe.body = downstream_probes
+            return jsonify([current_probe.__dict__] + downstream_probes)
+    except (ValueError, json.JSONDecodeError):
+        # Not a JSON response from a downstream probe,
+        # so this is the end of the request chain.
+        pass
+
+    return jsonify([current_probe.__dict__])
 
 
 def health_check():
