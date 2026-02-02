@@ -85,8 +85,8 @@ jobs:
 
       - name: Publish to PyPI
         # Only publish if this isn't a pre-release (alpha/beta)
-        if: |
-          steps.semantic.outputs.released == 'true'
+        if:
+          steps.semantic.outputs.released == 'true' &&
           !contains(github.ref, 'alpha') &&
           !contains(github.ref, 'beta') &&
           !contains(github.ref, 'rc')
