@@ -89,7 +89,7 @@ jobs:
           steps.semantic.outputs.released == 'true'
           !contains(github.ref, 'alpha') &&
           !contains(github.ref, 'beta') &&
-          !contains(github.ref, 'rc')"
+          !contains(github.ref, 'rc')
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           repository-url: https://upload.pypi.org/legacy/
