@@ -9,7 +9,7 @@ packages = [{include = "urlprobe", from = "src"}]
 [tool.poetry.dependencies]
 python = "^3.10"
 click = "^8.2.1"
-rich = "^14.0.0"
+rich = "^15.0.0"
 flask = "^3.0.0"
 toml = "^0.10.2"
 requests = "^2.32.3"
