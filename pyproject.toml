@@ -22,7 +22,7 @@ pre-commit = "^4.0.0"
 mypy = "^1.7.1"
 types-requests = "^2.31.0"
 types-toml = "^0.10.8"
-python-semantic-release = "^8.0.0"
+python-semantic-release = "^10.0.0"
 
 [tool.poetry.scripts]
 urlprobe = "urlprobe.__main__:main"
