@@ -7,6 +7,87 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- version list -->
 
+## v1.1.1 (2026-11-02)
+
+### Bug Fixes
+
+- **ci**: Use GitHub App token so semantic-release can push to main
+  ([`115ed8c`](https://github.com/av603/urlprobe/commit/115ed8c846ec2da3c67799ce951fad68a019d5b0))
+
+- **deps**: Update dependency rich to v15
+  ([`01ff816`](https://github.com/av603/urlprobe/commit/01ff816abc6f8ba335553a15dc9dbeab52a28062))
+
+### Chores
+
+- **deps**: Update actions/checkout action to v6
+  ([`56ef5ef`](https://github.com/av603/urlprobe/commit/56ef5efb673a4e7284338c4ce056b9e79af2f151))
+
+- **deps**: Update astral-sh/setup-uv action to v10
+  ([`a0d7503`](https://github.com/av603/urlprobe/commit/a0d7503867efa1310db7e4448e08cd02e18dabf3))
+
+- **deps**: Update astral-sh/setup-uv action to v8
+  ([`7996038`](https://github.com/av603/urlprobe/commit/79960385612dd677a6911b1ba1b9017bb51f289a))
+
+- **deps**: Update codecov/codecov-action action to v5.5.2
+  ([`f1738da`](https://github.com/av603/urlprobe/commit/f1738da009a80a012c4baf102d1f3457b5798e2d))
+
+- **deps**: Update codecov/codecov-action action to v5.5.4
+  ([`47cb2f4`](https://github.com/av603/urlprobe/commit/47cb2f42358b68efa6ea56b4f5474627f9cee2b0))
+
+- **deps**: Update codecov/codecov-action action to v6
+  ([`b262ec2`](https://github.com/av603/urlprobe/commit/b262ec283113b6009226082ad19fa312ae447b91))
+
+- **deps**: Update codecov/codecov-action action to v7
+  ([`f9885fc`](https://github.com/av603/urlprobe/commit/f9885fc329fa8c6b5265d53ba67e3728e63be058))
+
+- **deps**: Update codecov/codecov-action action to v7.1.1
+  ([`5919469`](https://github.com/av603/urlprobe/commit/5919469959dadf47e6fed771c746b9d8002c1a45))
+
+- **deps**: Update dependency click to v8.3.2
+  ([`01fd10f`](https://github.com/av603/urlprobe/commit/01fd10fa162f74d6e33ebd7492b697f0b54ae7d7))
+
+- **deps**: Update dependency click to v8.5.0
+  ([`b91a197`](https://github.com/av603/urlprobe/commit/b91a1972d9c4d0243b8c900c1c39d893208d8cf9))
+
+- **deps**: Update dependency flask to v3.1.3
+  ([`7333b06`](https://github.com/av603/urlprobe/commit/7333b065ba718586bc240c0f1bd138cfd28358ae))
+
+- **deps**: Update dependency mypy to v1.20.0
+  ([`376cf4d`](https://github.com/av603/urlprobe/commit/376cf4dd671624aba89002846c404f515a8b819b))
+
+- **deps**: Update dependency mypy to v1.20.2
+  ([`470bd28`](https://github.com/av603/urlprobe/commit/470bd2848ef2a18317f34ede8dc98051fd0b8567))
+
+- **deps**: Update dependency pre-commit to v4.6.0
+  ([`eb295ea`](https://github.com/av603/urlprobe/commit/eb295eaea5125adac7ce653519fffdc616ded850))
+
+- **deps**: Update dependency pre-commit to v4.6.2
+  ([`3a70b67`](https://github.com/av603/urlprobe/commit/3a70b6788b32251f8142d4af42cd4e1e60a3e200))
+
+- **deps**: Update dependency pytest to v9.0.3
+  ([`b28bdb6`](https://github.com/av603/urlprobe/commit/b28bdb6545ce9d50df4afa071b42a22005db9199))
+
+- **deps**: Update dependency pytest-cov to v7.1.0
+  ([`c9a8252`](https://github.com/av603/urlprobe/commit/c9a8252077c07681fe48a70caebdd07ad23e8406))
+
+- **deps**: Update dependency requests to v2.33.1
+  ([`1a1da03`](https://github.com/av603/urlprobe/commit/1a1da03e76307b44cdb97db408d51b5aa811ae0b))
+
+- **deps**: Update dependency requests to v2.34.2
+  ([`bc7b0b1`](https://github.com/av603/urlprobe/commit/bc7b0b1c90f12064ffb2057ce8137c69e40e60ef))
+
+- **deps**: Update dependency rich to v14.3.2
+  ([`385b9c7`](https://github.com/av603/urlprobe/commit/385b9c7766123f593e4942740d5b7164a66170d6))
+
+- **deps**: Update dependency rich to v14.3.4
+  ([`979e1db`](https://github.com/av603/urlprobe/commit/979e1db9871b5a78a84349fdbb5fc8e5c78a2022))
+
+### Continuous Integration
+
+- **pypitest**: Disable attestations and add workflow dispatch
+  ([`6bd2f34`](https://github.com/av603/urlprobe/commit/6bd2f348a88a26b5e0c3589ff3b65763051145af))
+
+
 ## v1.1.0 (2026-02-02)
 
 ### Chores
