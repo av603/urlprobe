@@ -11,6 +11,13 @@ on:
         type: boolean
         default: false
 
+# Run releases one at a time. Each run pushes a version commit to main, so
+# overlapping runs would reject each other's pushes. Queued runs check out the
+# latest main when they start.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 jobs:
   run-tests:
     name: Run Tests
@@ -56,10 +63,19 @@ jobs:
       - name: Install Poetry
         run: uv tool install poetry
 
+      # Attribute the release commit and tag to the release App's bot account.
       - name: Configure Git User
+        id: git-user
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          APP_SLUG: ${{ steps.app-token.outputs.app-slug }}
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          name="${APP_SLUG}[bot]"
+          user_id=$(gh api "/users/${name}" --jq .id)
+          email="${user_id}+${name}@users.noreply.github.com"
+          git config user.name "$name"
+          git config user.email "$email"
+          echo "author=${name} <${email}>" >> "$GITHUB_OUTPUT"
 
       # Bumps the version, updates CHANGELOG.md, then commits, tags and pushes
       # to main and creates the GitHub release.
@@ -67,6 +83,7 @@ jobs:
         id: semantic
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          GIT_COMMIT_AUTHOR: ${{ steps.git-user.outputs.author }}
         run: |
           uvx --from "python-semantic-release~=10.7" semantic-release version
 
@@ -96,12 +113,7 @@ jobs:
           skip-existing: true
 
       - name: Publish to PyPI
-        # Only publish if this isn't a pre-release (alpha/beta)
-        if:
-          (steps.semantic.outputs.released == 'true' || github.event.inputs.force_publish == 'true') &&
-          !contains(github.ref, 'alpha') &&
-          !contains(github.ref, 'beta') &&
-          !contains(github.ref, 'rc')
+        if: steps.semantic.outputs.released == 'true' || github.event.inputs.force_publish == 'true'
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           repository-url: https://upload.pypi.org/legacy/
