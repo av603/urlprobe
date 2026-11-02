@@ -6,5 +6,19 @@
   ],
   "pre-commit": {
     "enabled": true
-  }
+  },
+  "packageRules": [
+    {
+      "description": "Auto-merge non-major updates once required checks pass. Wait 3 days after a release so broken or malicious versions are likely pulled first.",
+      "matchUpdateTypes": [
+        "minor",
+        "patch",
+        "pin",
+        "pinDigest",
+        "digest"
+      ],
+      "automerge": true,
+      "minimumReleaseAge": "3 days"
+    }
+  ]
 }
