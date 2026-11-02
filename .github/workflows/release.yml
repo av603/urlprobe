@@ -23,7 +23,7 @@ jobs:
     name: Run Tests
     uses: ./.github/workflows/test.yml
     with:
-      python-versions: '["3.10", "3.11", "3.12"]'
+      python-versions: '["3.11", "3.12", "3.13", "3.14"]'
     secrets: inherit
 
   release:

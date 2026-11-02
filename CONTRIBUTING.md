@@ -6,7 +6,7 @@ This document provides guidelines and steps for contributing.
 
 ### Prerequisites
 
-- Python 3.10 or higher
+- Python 3.11 or higher
 - Poetry (Python package manager)
 
 ### Installing
