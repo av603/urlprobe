@@ -27,18 +27,26 @@ jobs:
     if: github.ref == 'refs/heads/main'
 
     permissions:
-      contents: write
+      contents: read
       id-token: write
 
     steps:
+      # The `main` ruleset requires status checks, which blocks semantic-release
+      # from pushing its version commit with GITHUB_TOKEN. The release GitHub App
+      # is on the ruleset bypass list, so its token can push.
+      - name: Create GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write
+
       - uses: actions/checkout@v6
         with:
+          ref: main
           fetch-depth: 0
-
-      - name: Switch to main branch
-        run: |
-          git checkout main
-          git pull origin main
+          token: ${{ steps.app-token.outputs.token }}
 
       - name: Set up uv
         uses: astral-sh/setup-uv@v10.3.3
@@ -53,12 +61,14 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Version and Changelog (Local)
+      # Bumps the version, updates CHANGELOG.md, then commits, tags and pushes
+      # to main and creates the GitHub release.
+      - name: Version and Changelog
         id: semantic
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
-          uvx --from "python-semantic-release>=9.0.0" semantic-release version
+          uvx --from "python-semantic-release~=10.7" semantic-release version
 
           # Check if a new tag was created
           if git describe --tags --exact-match HEAD >/dev/null 2>&1; then
@@ -67,22 +77,15 @@ jobs:
             echo "released=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Commit changes (Local)
-        run: |
-          git add CHANGELOG.md pyproject.toml
-          git diff --staged --quiet || git commit -m "chore: update changelog [skip ci]"
-
-      - name: Push changes to GitHub
-        run: git push origin main
-
-      - name: Publish to Github
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          uvx --from "python-semantic-release>=9.0.0" semantic-release publish
-
       - name: Build Package
         run: poetry build
+
+      - name: Upload build to GitHub release
+        if: steps.semantic.outputs.released == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          uvx --from "python-semantic-release~=10.7" semantic-release publish
 
       - name: Publish to TestPyPI
         if: steps.semantic.outputs.released == 'true' || github.event.inputs.force_publish == 'true'
