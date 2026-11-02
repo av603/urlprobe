@@ -7,7 +7,7 @@ readme = "README.md"
 packages = [{include = "urlprobe", from = "src"}]
 
 [tool.poetry.dependencies]
-python = "^3.10"
+python = "^3.11"
 click = "^8.2.1"
 rich = "^15.0.0"
 flask = "^3.0.0"
