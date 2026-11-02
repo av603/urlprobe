@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- version list -->
 
+## v2.0.0 (2026-11-02)
+
+### Chores
+
+- **config**: Migrate config renovate.json
+  ([`014c11d`](https://github.com/av603/urlprobe/commit/014c11d66e8bda12e2fb4cbb3d399bf7ecf76096))
+
+### Continuous Integration
+
+- Serialise release runs, attribute releases to app bot, pass codecov token
+  ([`45ecd98`](https://github.com/av603/urlprobe/commit/45ecd98824cb9016994f20a63e58ec8bcb2571c1))
+
+### Features
+
+- Drop Python 3.10 support
+  ([`505c549`](https://github.com/av603/urlprobe/commit/505c5497527418a6edee550adf4d561121674a74))
+
+
 ## v1.1.1 (2026-11-02)
 
 ### Bug Fixes
