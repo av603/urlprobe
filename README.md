@@ -45,7 +45,7 @@ will be received at Service A, then at Service B and finally at `https://api.ipi
 
 The `urlprobe` tool is available on PiPy and can be installed via pip:
 
-1.  **Install Python 3.10+:** Ensure you have Python 3.10 or a later version installed.
+1.  **Install Python 3.11+:** Ensure you have Python 3.11 or a later version installed.
 2.  **Install the package from PyPI using pip:**
 ```bash
 pip install urlprobe
