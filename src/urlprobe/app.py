@@ -4,6 +4,7 @@ import importlib.metadata
 import json
 import logging
 from dataclasses import dataclass, field
+from datetime import timedelta
 from pathlib import Path
 from typing import Any, Dict
 
@@ -27,6 +28,18 @@ ALLOWED_METHODS = ["GET"]
 VERIFY_SSL = True
 
 
+def _elapsed_ms(resp: requests.Response) -> float:
+    """Return the time taken for `resp`, including redirects, in ms.
+
+    requests times each redirect separately, and `resp.elapsed` covers
+    only the last one, so add the earlier ones from `resp.history`.
+    """
+    elapsed = sum((hop.elapsed for hop in resp.history), resp.elapsed)
+    # Divide the timedelta rather than multiplying total_seconds():
+    # timedelta arithmetic is exact, total_seconds() * 1000 is not.
+    return elapsed / timedelta(milliseconds=1)
+
+
 @dataclass
 class Probe:
     """Probe data structure.
@@ -35,7 +48,10 @@ class Probe:
         url: URL that was probed
 
         status_code: HTTP status code from the response
-        elapsed_ms: Response time in milliseconds
+        elapsed_ms: Approximate response time in milliseconds (not
+            seconds), from sending the first request to receiving the
+            final response's headers, summed over any redirects. It
+            excludes downloading the body.
         final_url: Final URL after redirects
         headers: Response headers
         body: Response body
@@ -48,6 +64,26 @@ class Probe:
     final_url: str = ""
     headers: Dict[str, str] = field(default_factory=dict)
     body: Any = ""
+
+    @classmethod
+    def from_response(cls, url: str, resp: requests.Response) -> "Probe":
+        """Build a probe from the response to a request for `url`.
+
+        Args:
+            url: URL that was requested
+            resp: Response received for that request
+
+        Returns:
+            Probe: probe describing the response
+        """
+        return cls(
+            url=url,
+            status_code=resp.status_code,
+            body=resp.text,
+            headers=dict(resp.headers),
+            elapsed_ms=_elapsed_ms(resp),
+            final_url=resp.url,
+        )
 
 
 def get_version() -> str:
@@ -95,14 +131,7 @@ def handle_request():
         error_probe = Probe(url=url, body=str(e), status_code=500)
         return jsonify([error_probe.__dict__])
 
-    current_probe = Probe(
-        url=url,
-        status_code=resp.status_code,
-        body=resp.text,
-        headers=dict(resp.headers),
-        elapsed_ms=resp.elapsed.total_seconds(),
-        final_url=resp.url,
-    )
+    current_probe = Probe.from_response(url, resp)
 
     try:
         downstream_probes = resp.json()
