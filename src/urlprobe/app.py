@@ -4,6 +4,7 @@ import importlib.metadata
 import json
 import logging
 from dataclasses import dataclass, field
+from datetime import timedelta
 from pathlib import Path
 from typing import Any, Dict
 
@@ -35,7 +36,8 @@ class Probe:
         url: URL that was probed
 
         status_code: HTTP status code from the response
-        elapsed_ms: Response time in milliseconds
+        elapsed_ms: Response time in milliseconds (not seconds), from
+            sending the request to receiving the response headers
         final_url: Final URL after redirects
         headers: Response headers
         body: Response body
@@ -65,7 +67,9 @@ class Probe:
             status_code=resp.status_code,
             body=resp.text,
             headers=dict(resp.headers),
-            elapsed_ms=resp.elapsed.total_seconds(),
+            # Divide the timedelta rather than multiplying total_seconds():
+            # the division is exact, total_seconds() * 1000 is not.
+            elapsed_ms=resp.elapsed / timedelta(milliseconds=1),
             final_url=resp.url,
         )
 

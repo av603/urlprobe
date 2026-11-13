@@ -2,7 +2,10 @@
 
 import importlib.metadata
 import json
+import threading
+import time
 from datetime import timedelta
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any, Sequence
 from unittest.mock import MagicMock, patch
 
@@ -102,7 +105,7 @@ def test_handle_request_with_url(mock_request, client):
     assert probe["url"] == "https://example.com"
     assert probe["status_code"] == 200
     assert probe["body"] == "Hello, world!"
-    assert probe["elapsed_ms"] == 0.123
+    assert probe["elapsed_ms"] == 123.0
 
 
 @patch("urlprobe.app.requests.request")
@@ -113,6 +116,8 @@ def test_handle_request_chained_url(mock_request, client):
         "status_code": 200,
         "body": "Final response",
         "headers": {},
+        # Passed through as-is, whatever its unit: a downstream urlprobe
+        # older than 3.0.0 reports seconds here.
         "elapsed_ms": 0.1,
         "final_url": "https://service-b.com",
     }
@@ -138,7 +143,7 @@ def test_handle_request_chained_url(mock_request, client):
     assert probe1["url"] == "https://service-a.com/?url=https://service-b.com"
     assert probe1["status_code"] == 201
     assert probe1["body"] == [downstream_probe]
-    assert probe1["elapsed_ms"] == 0.456
+    assert probe1["elapsed_ms"] == 456.0
 
     probe2 = data[1]
     assert probe2 == downstream_probe
@@ -158,6 +163,7 @@ def test_handle_request_request_exception(mock_request, client):
     assert probe["url"] == "https://example.com"
     assert probe["status_code"] == 500
     assert "Connection error" in probe["body"]
+    assert probe["elapsed_ms"] == 0
 
 
 def test_probe_from_response_maps_every_field():
@@ -175,8 +181,102 @@ def test_probe_from_response_maps_every_field():
     assert probe == Probe(
         url="https://example.com/start",
         status_code=404,
-        elapsed_ms=0.123,
+        elapsed_ms=123.0,
         final_url="https://example.com/final",
         headers={"Content-Type": "text/plain"},
         body="Not found",
     )
+
+
+# Exact == on purpose: these cases exist to catch float artefacts such as
+# 0.020999999999999998 from total_seconds() * 1000. pytest.approx would
+# hide exactly that regression.
+@pytest.mark.parametrize(
+    ("elapsed", "expected_ms"),
+    [
+        (timedelta(milliseconds=123), 123.0),
+        (timedelta(microseconds=123456), 123.456),
+        (timedelta(microseconds=1), 0.001),
+        (timedelta(microseconds=21), 0.021),
+        (timedelta(seconds=1, microseconds=234567), 1234.567),
+        (timedelta(0), 0.0),
+    ],
+)
+@patch("urlprobe.app.requests.request")
+def test_handle_request_elapsed_ms_is_exact_milliseconds(
+    mock_request, client, elapsed, expected_ms
+):
+    """Test elapsed_ms converts the response time to exact milliseconds."""
+    mock_request.return_value = make_response(elapsed=elapsed)
+
+    response = client.get("/?url=https://example.com")
+
+    elapsed_ms = response.json[0]["elapsed_ms"]
+    assert isinstance(elapsed_ms, float)
+    assert elapsed_ms == expected_ms
+
+
+class _ProbeTargetHandler(BaseHTTPRequestHandler):
+    """Real HTTP target for probes, routed on path."""
+
+    SLEEP_S = 0.05
+
+    def do_GET(self):
+        """Serve the probe target routes."""
+        if self.path == "/slow":
+            time.sleep(self.SLEEP_S)
+            self._send(200, body=b"ok")
+        else:
+            self._send(404)
+
+    def _send(self, status, body=b"", headers=None):
+        self.send_response(status)
+        for name, value in (headers or {}).items():
+            self.send_header(name, value)
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def log_message(self, format, *args):
+        """Keep test output quiet."""
+
+
+@pytest.fixture(scope="module")
+def target_server():
+    """Serve _ProbeTargetHandler on a free localhost port.
+
+    Yields:
+        str: base URL of the server
+    """
+    # TODO: roadmap item 1 plans to block private and loopback addresses.
+    # These tests probe 127.0.0.1, so they'll need an allowlist or an
+    # override when that lands.
+    server = ThreadingHTTPServer(("127.0.0.1", 0), _ProbeTargetHandler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    yield f"http://127.0.0.1:{server.server_port}"
+    server.shutdown()
+    server.server_close()
+    thread.join()
+
+
+@pytest.fixture
+def no_proxy(monkeypatch):
+    """Stop a developer's proxy settings routing localhost probes."""
+    for name in ("HTTP_PROXY", "http_proxy", "ALL_PROXY", "all_proxy"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("NO_PROXY", "127.0.0.1")
+    monkeypatch.setenv("no_proxy", "127.0.0.1")
+
+
+def test_handle_request_elapsed_ms_real_target(
+    client, target_server, no_proxy
+):
+    """Test elapsed_ms is in milliseconds against a real, slow target."""
+    response = client.get("/", query_string={"url": f"{target_server}/slow"})
+
+    probe = response.json[0]
+    assert probe["status_code"] == 200
+    # The target sleeps 50 ms. Seconds would give about 0.05. The upper
+    # bound is generous to keep slow CI runners from failing.
+    assert 50 <= probe["elapsed_ms"] < 5000
