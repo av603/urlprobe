@@ -49,6 +49,26 @@ class Probe:
     headers: Dict[str, str] = field(default_factory=dict)
     body: Any = ""
 
+    @classmethod
+    def from_response(cls, url: str, resp: requests.Response) -> "Probe":
+        """Build a probe from the response to a request for `url`.
+
+        Args:
+            url: URL that was requested
+            resp: Response received for that request
+
+        Returns:
+            Probe: probe describing the response
+        """
+        return cls(
+            url=url,
+            status_code=resp.status_code,
+            body=resp.text,
+            headers=dict(resp.headers),
+            elapsed_ms=resp.elapsed.total_seconds(),
+            final_url=resp.url,
+        )
+
 
 def get_version() -> str:
     """Read version from pyproject.toml."""
@@ -95,14 +115,7 @@ def handle_request():
         error_probe = Probe(url=url, body=str(e), status_code=500)
         return jsonify([error_probe.__dict__])
 
-    current_probe = Probe(
-        url=url,
-        status_code=resp.status_code,
-        body=resp.text,
-        headers=dict(resp.headers),
-        elapsed_ms=resp.elapsed.total_seconds(),
-        final_url=resp.url,
-    )
+    current_probe = Probe.from_response(url, resp)
 
     try:
         downstream_probes = resp.json()
