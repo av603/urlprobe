@@ -28,6 +28,18 @@ ALLOWED_METHODS = ["GET"]
 VERIFY_SSL = True
 
 
+def _elapsed_ms(resp: requests.Response) -> float:
+    """Return the time taken for `resp`, including redirects, in ms.
+
+    requests times each redirect separately, and `resp.elapsed` covers
+    only the last one, so add the earlier ones from `resp.history`.
+    """
+    elapsed = sum((hop.elapsed for hop in resp.history), resp.elapsed)
+    # Divide the timedelta rather than multiplying total_seconds():
+    # timedelta arithmetic is exact, total_seconds() * 1000 is not.
+    return elapsed / timedelta(milliseconds=1)
+
+
 @dataclass
 class Probe:
     """Probe data structure.
@@ -36,8 +48,10 @@ class Probe:
         url: URL that was probed
 
         status_code: HTTP status code from the response
-        elapsed_ms: Response time in milliseconds (not seconds), from
-            sending the request to receiving the response headers
+        elapsed_ms: Approximate response time in milliseconds (not
+            seconds), from sending the first request to receiving the
+            final response's headers, summed over any redirects. It
+            excludes downloading the body.
         final_url: Final URL after redirects
         headers: Response headers
         body: Response body
@@ -67,9 +81,7 @@ class Probe:
             status_code=resp.status_code,
             body=resp.text,
             headers=dict(resp.headers),
-            # Divide the timedelta rather than multiplying total_seconds():
-            # the division is exact, total_seconds() * 1000 is not.
-            elapsed_ms=resp.elapsed / timedelta(milliseconds=1),
+            elapsed_ms=_elapsed_ms(resp),
             final_url=resp.url,
         )
 

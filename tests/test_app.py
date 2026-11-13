@@ -223,9 +223,14 @@ class _ProbeTargetHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         """Serve the probe target routes."""
-        if self.path == "/slow":
+        if self.path in ("/slow", "/final"):
             time.sleep(self.SLEEP_S)
             self._send(200, body=b"ok")
+        elif self.path == "/redirect":
+            time.sleep(self.SLEEP_S)
+            self._send(302, headers={"Location": "/final"})
+        elif self.path == "/loop":
+            self._send(302, headers={"Location": "/loop"})
         else:
             self._send(404)
 
@@ -280,3 +285,71 @@ def test_handle_request_elapsed_ms_real_target(
     # The target sleeps 50 ms. Seconds would give about 0.05. The upper
     # bound is generous to keep slow CI runners from failing.
     assert 50 <= probe["elapsed_ms"] < 5000
+
+
+# Exact == on purpose, as above. Summing the history as floats gives
+# 0.16099999999999998 or 0.16100000000000003 for the second case, so it
+# checks the sum stays a timedelta until it's converted.
+@pytest.mark.parametrize(
+    ("history", "elapsed", "expected_ms"),
+    [
+        ([timedelta(milliseconds=30)], timedelta(milliseconds=70), 100.0),
+        (
+            [timedelta(microseconds=35), timedelta(microseconds=42)],
+            timedelta(microseconds=84),
+            0.161,
+        ),
+        (
+            [timedelta(milliseconds=1), timedelta(seconds=2)],
+            timedelta(microseconds=500),
+            2001.5,
+        ),
+    ],
+)
+@patch("urlprobe.app.requests.request")
+def test_handle_request_elapsed_ms_includes_redirects(
+    mock_request, client, history, elapsed, expected_ms
+):
+    """Test elapsed_ms adds the time of every redirect to the final one."""
+    mock_request.return_value = make_response(elapsed=elapsed, history=history)
+
+    response = client.get("/?url=https://example.com")
+
+    assert response.json[0]["elapsed_ms"] == expected_ms
+
+
+def test_handle_request_redirect_real_target(client, target_server, no_proxy):
+    """Test a real redirect: timing covers both hops, nothing else moves."""
+    requested_url = f"{target_server}/redirect"
+
+    response = client.get("/", query_string={"url": requested_url})
+
+    data = response.json
+    assert len(data) == 1
+    probe = data[0]
+    # Each hop sleeps 50 ms. Timing the last hop only would give about 50.
+    assert 100 <= probe["elapsed_ms"] < 5000
+    assert probe["url"] == requested_url
+    assert probe["final_url"] == f"{target_server}/final"
+    assert probe["status_code"] == 200
+    assert probe["body"] == "ok"
+
+
+def test_handle_request_redirect_loop_real_target(
+    client, target_server, no_proxy
+):
+    """Test a redirect loop gives one error probe, as other failures do."""
+    url = f"{target_server}/loop"
+
+    response = client.get("/", query_string={"url": url})
+
+    assert response.status_code == 200
+    data = response.json
+    assert len(data) == 1
+    probe = data[0]
+    # TODO: roadmap item 6 changes the error probe (status_code 0 plus an
+    # error field); update these assertions with it.
+    assert probe["url"] == url
+    assert probe["status_code"] == 500
+    assert probe["elapsed_ms"] == 0
+    assert "Exceeded 30 redirects" in probe["body"]
