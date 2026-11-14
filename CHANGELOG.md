@@ -7,6 +7,86 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- version list -->
 
+## v3.0.0 (2026-11-14)
+
+### Bug Fixes
+
+- **app**: Include redirects in elapsed_ms
+  ([`92b3e3f`](https://github.com/av603/urlprobe/commit/92b3e3f00d1bc7d207f316998b10e879663707a9))
+
+- **app**: Report elapsed_ms in milliseconds
+  ([`c4ad2ff`](https://github.com/av603/urlprobe/commit/c4ad2ffd2b6daf9ea7b74e1c2de8d8017ec08ef2))
+
+- **app**: Report failed requests with null response fields and an error object
+  ([`e5408ad`](https://github.com/av603/urlprobe/commit/e5408ad8e4c66bee676f7935cc0d791db404ddee))
+
+- **app**: Stop repeating downstream probes in chained output
+  ([`0d9eb67`](https://github.com/av603/urlprobe/commit/0d9eb67c3d1411dfb6d4b9cf8c0a2dc5d775f461))
+
+### Chores
+
+- **deps**: Pin dependencies
+  ([`a88eb4b`](https://github.com/av603/urlprobe/commit/a88eb4bb14bb396d88e174066a2f1149b1988a90))
+
+- **deps**: Update actions/checkout action to v7
+  ([`b8b96f0`](https://github.com/av603/urlprobe/commit/b8b96f05516203bbde6d9b1a72d7c419e87a0568))
+
+- **deps**: Update actions/setup-python action to v7
+  ([`3ccc43d`](https://github.com/av603/urlprobe/commit/3ccc43d9184af09ce6f2a365ac8cf2ad27b566a3))
+
+- **deps**: Update dependency click to v8.5.1 ([#136](https://github.com/av603/urlprobe/pull/136),
+  [`d76a423`](https://github.com/av603/urlprobe/commit/d76a423dfc281774b182f4cdd7829c6745130ce8))
+
+- **deps**: Update dependency flake8 to v7.5.0
+  ([`dff55a8`](https://github.com/av603/urlprobe/commit/dff55a84fb7ac34aa9c24afe54edd283c8b90738))
+
+- **deps**: Update dependency mypy to v2
+  ([`33e8b3b`](https://github.com/av603/urlprobe/commit/33e8b3ba115c360e240ed286cc6eefa3f7f51258))
+
+- **deps**: Update dependency pre-commit to v4.7.0
+  ([`38130b8`](https://github.com/av603/urlprobe/commit/38130b8d9f2ec7e3e53e74c968a8cbf5ad8822a1))
+
+- **deps**: Update dependency pytest to v9.2.0
+  ([`84550bd`](https://github.com/av603/urlprobe/commit/84550bdd6bf562cbff906c262b2b2d5c02e2d8b9))
+
+- **deps**: Update pre-commit hook pre-commit/pre-commit-hooks to v4.6.0
+  ([`68f8086`](https://github.com/av603/urlprobe/commit/68f8086ff65e971bb5492983dbabcac078d52ae0))
+
+- **deps**: Update pre-commit hook pre-commit/pre-commit-hooks to v6
+  ([`2a9e419`](https://github.com/av603/urlprobe/commit/2a9e4195658d5ea2fd536248bd705f822bf4b2ab))
+
+- **deps**: Update pre-commit hook psf/black to v26
+  ([`3d70c6f`](https://github.com/av603/urlprobe/commit/3d70c6f14bc8f06c307775b3c5bee5715ddcd3d0))
+
+- **deps**: Update pre-commit hook pycqa/flake8 to v7
+  ([`034d47e`](https://github.com/av603/urlprobe/commit/034d47e5313d804f38a38993efda6309c2205e0f))
+
+- **deps**: Update pre-commit hook pycqa/isort to v9
+  ([`d38810d`](https://github.com/av603/urlprobe/commit/d38810d3b51514dbcfc4c51d41063f4b79ab924a))
+
+- **renovate**: Auto-merge non-major updates after checks pass
+  ([`c9616fa`](https://github.com/av603/urlprobe/commit/c9616fa76ad3b063f3f6cf4f7f6204cc53209e21))
+
+- **renovate**: Enable pre-commit updates and pin action digests
+  ([`34ad9fc`](https://github.com/av603/urlprobe/commit/34ad9fcb5c5b4020018adc9512afc3f2dd85985d))
+
+### Documentation
+
+- **readme**: Document probe output fields
+  ([`96fc1f0`](https://github.com/av603/urlprobe/commit/96fc1f0be10f147ca8d4d063308fab41a32021b8))
+
+### Refactoring
+
+- **app**: Build probes with Probe.from_response
+  ([`37e53b1`](https://github.com/av603/urlprobe/commit/37e53b147ea029d20c3216e6cb36a6bf5e349331))
+
+### Breaking Changes
+
+- **app**: A hop whose target is another urlprobe now has body null; its downstream probes appear
+  only once, after it in the array. Only a non-empty list of objects with all of url, status_code,
+  elapsed_ms, final_url, headers and body is treated as a downstream chain.
+
+
 ## v2.0.0 (2026-11-02)
 
 ### Chores
