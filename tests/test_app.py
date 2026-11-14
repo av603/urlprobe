@@ -2,6 +2,7 @@
 
 import importlib.metadata
 import json
+import socket
 import threading
 import time
 from datetime import timedelta
@@ -11,8 +12,9 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 import requests
-from requests.exceptions import RequestException
+from requests import exceptions as req_exc
 
+from urlprobe import app as app_module
 from urlprobe.app import Probe, create_app
 
 
@@ -48,6 +50,28 @@ def make_response(
     else:
         resp.json.return_value = json_body
     return resp
+
+
+PROBE_KEYS = {
+    "url",
+    "status_code",
+    "elapsed_ms",
+    "final_url",
+    "headers",
+    "body",
+    "error",
+}
+
+
+def assert_probe_shape(probe: dict) -> None:
+    """Assert `probe` has every probe field, and exactly one outcome.
+
+    Every probe has the same keys. A probe either got a response (it has
+    a status_code and no error) or it didn't (an error and no
+    status_code).
+    """
+    assert set(probe) == PROBE_KEYS
+    assert (probe["status_code"] is None) != (probe["error"] is None)
 
 
 @pytest.fixture
@@ -102,15 +126,18 @@ def test_handle_request_with_url(mock_request, client):
     assert isinstance(data, list)
     assert len(data) == 1
     probe = data[0]
+    assert_probe_shape(probe)
     assert probe["url"] == "https://example.com"
     assert probe["status_code"] == 200
     assert probe["body"] == "Hello, world!"
     assert probe["elapsed_ms"] == 123.0
+    assert probe["error"] is None
 
 
 @patch("urlprobe.app.requests.request")
 def test_handle_request_chained_url(mock_request, client):
     """Test handle_request with a chained URL parameter."""
+    # The shape a urlprobe older than 3.0.0 returns (no error field).
     downstream_probe = {
         "url": "https://service-b.com",
         "status_code": 200,
@@ -140,6 +167,8 @@ def test_handle_request_chained_url(mock_request, client):
     assert len(data) == 2
 
     probe1 = data[0]
+    assert_probe_shape(probe1)
+    assert probe1["error"] is None
     assert probe1["url"] == "https://service-a.com/?url=https://service-b.com"
     assert probe1["status_code"] == 201
     assert probe1["body"] == [downstream_probe]
@@ -149,21 +178,98 @@ def test_handle_request_chained_url(mock_request, client):
     assert probe2 == downstream_probe
 
 
+@pytest.mark.parametrize(
+    "error",
+    [
+        req_exc.RequestException("Connection error"),
+        req_exc.ConnectionError("refused"),
+        req_exc.ConnectTimeout("connect timed out"),
+        req_exc.ReadTimeout("read timed out"),
+        req_exc.SSLError("bad certificate"),
+        req_exc.TooManyRedirects("Exceeded 30 redirects."),
+        req_exc.InvalidURL("bad port"),
+        # urllib3's LocationParseError is a ValueError that requests doesn't
+        # wrap.
+        ValueError("Failed to parse: 'a..b'"),
+    ],
+    ids=lambda error: type(error).__name__,
+)
 @patch("urlprobe.app.requests.request")
-def test_handle_request_request_exception(mock_request, client):
-    """Test handle_request when a request exception occurs."""
-    mock_request.side_effect = RequestException("Connection error")
+def test_handle_request_failure(mock_request, client, error):
+    """Test a request with no response gives an error probe, not a 500."""
+    mock_request.side_effect = error
 
     response = client.get("/?url=https://example.com")
+
     assert response.status_code == 200  # The endpoint itself returns 200
     data = response.json
-    assert isinstance(data, list)
     assert len(data) == 1
     probe = data[0]
+    assert_probe_shape(probe)
     assert probe["url"] == "https://example.com"
-    assert probe["status_code"] == 500
-    assert "Connection error" in probe["body"]
-    assert probe["elapsed_ms"] == 0
+    assert probe["status_code"] is None
+    assert probe["elapsed_ms"] is None
+    assert probe["final_url"] is None
+    assert probe["headers"] is None
+    assert probe["body"] is None
+    assert probe["error"]["message"] == str(error)
+    assert isinstance(probe["error"]["elapsed_ms"], float)
+    assert probe["error"]["elapsed_ms"] >= 0
+
+
+@patch("urlprobe.app.perf_counter", side_effect=[10.0, 10.0123456])
+@patch("urlprobe.app.requests.request")
+def test_handle_request_failure_elapsed_ms(mock_request, _, client):
+    """Test the time to failure is reported in exact milliseconds."""
+    mock_request.side_effect = req_exc.ConnectTimeout("connect timed out")
+
+    response = client.get("/?url=https://example.com")
+
+    # Exact ==, as for successes: timedelta rounds to 12,346 microseconds.
+    assert response.json[0]["error"]["elapsed_ms"] == 12.346
+
+
+@patch("urlprobe.app.requests.request")
+def test_handle_request_empty_response_is_not_null(mock_request, client):
+    """Test an empty but real response keeps "" and {}, not null."""
+    mock_request.return_value = make_response(
+        elapsed=timedelta(milliseconds=5), status_code=204
+    )
+
+    response = client.get("/?url=https://example.com")
+
+    probe = response.json[0]
+    assert_probe_shape(probe)
+    assert probe["status_code"] == 204
+    assert probe["body"] == ""
+    assert probe["headers"] == {}
+    assert probe["error"] is None
+
+
+@patch("urlprobe.app.requests.request")
+def test_handle_request_chained_failure_passes_through(mock_request, client):
+    """Test a downstream failure probe is passed through unchanged."""
+    downstream_probe = Probe.from_error(
+        "https://service-b.com",
+        req_exc.ConnectionError("refused"),
+        timedelta(milliseconds=14),
+    ).__dict__
+    mock_request.return_value = make_response(
+        elapsed=timedelta(milliseconds=20),
+        text=json.dumps([downstream_probe]),
+        json_body=[downstream_probe],
+        url="https://service-a.com/?url=https://service-b.com",
+    )
+
+    response = client.get(
+        "/?url=https://service-a.com/?url=https://service-b.com"
+    )
+
+    data = response.json
+    assert len(data) == 2
+    for probe in data:
+        assert_probe_shape(probe)
+    assert data[1] == downstream_probe
 
 
 def test_probe_from_response_maps_every_field():
@@ -185,6 +291,25 @@ def test_probe_from_response_maps_every_field():
         final_url="https://example.com/final",
         headers={"Content-Type": "text/plain"},
         body="Not found",
+    )
+
+
+def test_probe_from_error_sets_error_only():
+    """Test Probe.from_error sets the error and no response fields."""
+    probe = Probe.from_error(
+        "https://example.com",
+        req_exc.ReadTimeout("Read timed out."),
+        timedelta(seconds=10, microseconds=3200),
+    )
+
+    assert probe == Probe(
+        url="https://example.com",
+        status_code=None,
+        elapsed_ms=None,
+        final_url=None,
+        headers=None,
+        body=None,
+        error={"message": "Read timed out.", "elapsed_ms": 10003.2},
     )
 
 
@@ -211,6 +336,7 @@ def test_handle_request_elapsed_ms_is_exact_milliseconds(
 
     response = client.get("/?url=https://example.com")
 
+    assert_probe_shape(response.json[0])
     elapsed_ms = response.json[0]["elapsed_ms"]
     assert isinstance(elapsed_ms, float)
     assert elapsed_ms == expected_ms
@@ -231,6 +357,8 @@ class _ProbeTargetHandler(BaseHTTPRequestHandler):
             self._send(302, headers={"Location": "/final"})
         elif self.path == "/loop":
             self._send(302, headers={"Location": "/loop"})
+        elif self.path == "/error":
+            self._send(500, body=b"boom")
         else:
             self._send(404)
 
@@ -278,6 +406,7 @@ def test_handle_request_elapsed_ms_real_target(
     response = client.get("/", query_string={"url": f"{target_server}/slow"})
 
     probe = response.json[0]
+    assert_probe_shape(probe)
     assert probe["status_code"] == 200
     # The target sleeps 50 ms. Seconds would give about 0.05. The upper
     # bound is generous to keep slow CI runners from failing.
@@ -312,6 +441,7 @@ def test_handle_request_elapsed_ms_includes_redirects(
 
     response = client.get("/?url=https://example.com")
 
+    assert_probe_shape(response.json[0])
     assert response.json[0]["elapsed_ms"] == expected_ms
 
 
@@ -324,6 +454,7 @@ def test_handle_request_redirect_real_target(client, target_server, no_proxy):
     data = response.json
     assert len(data) == 1
     probe = data[0]
+    assert_probe_shape(probe)
     # Each hop sleeps 50 ms. Timing the last hop only would give about 50.
     assert 100 <= probe["elapsed_ms"] < 5000
     assert probe["url"] == requested_url
@@ -344,7 +475,72 @@ def test_handle_request_redirect_loop_real_target(
     data = response.json
     assert len(data) == 1
     probe = data[0]
+    assert_probe_shape(probe)
     assert probe["url"] == url
+    assert probe["status_code"] is None
+    assert probe["elapsed_ms"] is None
+    assert probe["body"] is None
+    assert "Exceeded 30 redirects" in probe["error"]["message"]
+
+
+def test_handle_request_real_http_500_is_not_an_error(
+    client, target_server, no_proxy
+):
+    """Test a target's real HTTP 500 is a response, not an error."""
+    response = client.get("/", query_string={"url": f"{target_server}/error"})
+
+    probe = response.json[0]
+    assert_probe_shape(probe)
     assert probe["status_code"] == 500
-    assert probe["elapsed_ms"] == 0
-    assert "Exceeded 30 redirects" in probe["body"]
+    assert probe["body"] == "boom"
+    assert isinstance(probe["elapsed_ms"], float)
+    assert probe["error"] is None
+
+
+def _closed_port() -> int:
+    """Return a localhost port that nothing is listening on."""
+    with socket.socket() as sock:
+        sock.bind(("127.0.0.1", 0))
+        return sock.getsockname()[1]
+
+
+def test_handle_request_connection_refused_real(client, no_proxy):
+    """Test a refused connection gives an error probe with its timing."""
+    url = f"http://127.0.0.1:{_closed_port()}/"
+
+    response = client.get("/", query_string={"url": url})
+
+    assert response.status_code == 200
+    probe = response.json[0]
+    assert_probe_shape(probe)
+    assert probe["status_code"] is None
+    assert probe["error"]["message"]
+    assert 0 <= probe["error"]["elapsed_ms"] < 5000
+
+
+def test_handle_request_read_timeout_real(
+    client, target_server, no_proxy, monkeypatch
+):
+    """Test a timeout reports the time spent waiting before it failed."""
+    monkeypatch.setattr(app_module, "DEFAULT_TIMEOUT", 0.01)
+
+    response = client.get("/", query_string={"url": f"{target_server}/slow"})
+
+    probe = response.json[0]
+    assert_probe_shape(probe)
+    assert "Read timed out" in probe["error"]["message"]
+    # The timeout is 10 ms, so the failure can't come sooner than that.
+    assert 10 <= probe["error"]["elapsed_ms"] < 5000
+
+
+def test_handle_request_unparseable_host_real(client, no_proxy):
+    """Test a host urllib3 can't parse gives an error probe, not a 500."""
+    response = client.get("/", query_string={"url": "http://a..b/"})
+
+    assert response.status_code == 200
+    data = response.json
+    assert len(data) == 1
+    probe = data[0]
+    assert_probe_shape(probe)
+    assert probe["status_code"] is None
+    assert "Failed to parse" in probe["error"]["message"]

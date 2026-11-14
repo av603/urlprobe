@@ -89,16 +89,17 @@ The server returns a JSON array of probes, one per hop in the request chain, inc
 * **Edge Service Response:** Status code, headers, and body from the target service."
 * **Error Messages:** Detailed error messages for any failures encountered during the request chain.
 
-Each probe has these fields:
+Each probe has these fields. If the request got no HTTP response (for example the connection was refused or timed out), the fields that come from the response are `null` and `error` says why. Otherwise `error` is `null`.
 
 | Field | Description |
 | --- | --- |
 | `url` | The URL this hop requested. |
-| `status_code` | The HTTP status code of the final response. `500` if the request failed with no response. |
-| `elapsed_ms` | Approximate response time in milliseconds, from sending the first request to receiving the final response's headers, summed over any redirects. It excludes downloading the body, and is `0` if the request failed. |
-| `final_url` | The URL after any redirects. Empty if the request failed. |
-| `headers` | The final response's headers. Empty if the request failed. |
-| `body` | The final response's body as text, or the error message if the request failed. When the target is another `urlprobe`, it holds that service's probes, which also follow this probe in the array. |
+| `status_code` | The HTTP status code of the final response. |
+| `elapsed_ms` | Approximate response time in milliseconds, from sending the first request to receiving the final response's headers, summed over any redirects. It excludes downloading the body. |
+| `final_url` | The URL after any redirects. |
+| `headers` | The final response's headers. |
+| `body` | The final response's body as text. When the target is another `urlprobe`, it holds that service's probes, which also follow this probe in the array. |
+| `error` | `null`, or if there was no response, an object with `message` (why the request failed) and `elapsed_ms` (the time in milliseconds from starting the request until it failed, for example about 10,000 for a timeout). |
 
 ## Contributing
 

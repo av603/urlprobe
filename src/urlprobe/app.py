@@ -3,10 +3,11 @@
 import importlib.metadata
 import json
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import timedelta
 from pathlib import Path
-from typing import Any, Dict
+from time import perf_counter
+from typing import Any, Dict, Optional, TypedDict
 
 import requests
 import toml
@@ -28,21 +29,41 @@ ALLOWED_METHODS = ["GET"]
 VERIFY_SSL = True
 
 
+def _to_ms(elapsed: timedelta) -> float:
+    """Return `elapsed` in milliseconds, exact to the microsecond."""
+    # Divide the timedelta rather than multiplying total_seconds():
+    # timedelta arithmetic is exact, total_seconds() * 1000 is not.
+    return elapsed / timedelta(milliseconds=1)
+
+
 def _elapsed_ms(resp: requests.Response) -> float:
     """Return the time taken for `resp`, including redirects, in ms.
 
     requests times each redirect separately, and `resp.elapsed` covers
     only the last one, so add the earlier ones from `resp.history`.
     """
-    elapsed = sum((hop.elapsed for hop in resp.history), resp.elapsed)
-    # Divide the timedelta rather than multiplying total_seconds():
-    # timedelta arithmetic is exact, total_seconds() * 1000 is not.
-    return elapsed / timedelta(milliseconds=1)
+    return _to_ms(sum((hop.elapsed for hop in resp.history), resp.elapsed))
+
+
+class ProbeError(TypedDict):
+    """Why a probe got no HTTP response.
+
+    Attributes:
+        message: The failure message
+        elapsed_ms: Wall-clock time from starting the request until it
+            failed, in milliseconds
+    """
+
+    message: str
+    elapsed_ms: float
 
 
 @dataclass
 class Probe:
     """Probe data structure.
+
+    Fields that come from the response are None when there was no
+    response; `error` is None when there was one.
 
     Attributes:
         url: URL that was probed
@@ -55,15 +76,17 @@ class Probe:
         final_url: Final URL after redirects
         headers: Response headers
         body: Response body
+        error: Why there was no response
     """
 
     url: str
 
-    status_code: int = 0
-    elapsed_ms: float = 0
-    final_url: str = ""
-    headers: Dict[str, str] = field(default_factory=dict)
-    body: Any = ""
+    status_code: Optional[int] = None
+    elapsed_ms: Optional[float] = None
+    final_url: Optional[str] = None
+    headers: Optional[Dict[str, str]] = None
+    body: Any = None
+    error: Optional[ProbeError] = None
 
     @classmethod
     def from_response(cls, url: str, resp: requests.Response) -> "Probe":
@@ -83,6 +106,25 @@ class Probe:
             headers=dict(resp.headers),
             elapsed_ms=_elapsed_ms(resp),
             final_url=resp.url,
+        )
+
+    @classmethod
+    def from_error(
+        cls, url: str, error: Exception, elapsed: timedelta
+    ) -> "Probe":
+        """Build a probe for a request to `url` that got no response.
+
+        Args:
+            url: URL that was requested
+            error: Why the request failed
+            elapsed: Time from starting the request until it failed
+
+        Returns:
+            Probe: probe with the error, and no response fields
+        """
+        return cls(
+            url=url,
+            error=ProbeError(message=str(error), elapsed_ms=_to_ms(elapsed)),
         )
 
 
@@ -119,6 +161,7 @@ def handle_request():
 
     # send request to the URL and get the response
     logger.info("Probing URL: %s", url)
+    start = perf_counter()
     try:
         resp = requests.request(
             method=request.method,
@@ -126,9 +169,12 @@ def handle_request():
             timeout=DEFAULT_TIMEOUT,
             verify=VERIFY_SSL,
         )
-    except requests.exceptions.RequestException as e:
+    # ValueError covers urllib3's LocationParseError, which requests doesn't
+    # wrap, for hosts such as `a..b` that pass is_valid_url.
+    except (requests.exceptions.RequestException, ValueError) as e:
+        elapsed = timedelta(seconds=perf_counter() - start)
         logger.error(f"Request to {url} failed: {e}")
-        error_probe = Probe(url=url, body=str(e), status_code=500)
+        error_probe = Probe.from_error(url, e, elapsed)
         return jsonify([error_probe.__dict__])
 
     current_probe = Probe.from_response(url, resp)
