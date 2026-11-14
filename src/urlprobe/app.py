@@ -45,6 +45,32 @@ def _elapsed_ms(resp: requests.Response) -> float:
     return _to_ms(sum((hop.elapsed for hop in resp.history), resp.elapsed))
 
 
+# The keys every urlprobe probe has carried since 2.x. Deliberately not
+# derived from Probe: a field added later must not become required, or a
+# newer urlprobe would stop recognising older ones downstream.
+PROBE_CORE_KEYS = frozenset(
+    {"url", "status_code", "elapsed_ms", "final_url", "headers", "body"}
+)
+
+
+def _is_probe_chain(data: Any) -> bool:
+    """Return whether `data` is the probe list a downstream urlprobe returns.
+
+    That is a non-empty list in which every item is a dict with all of
+    PROBE_CORE_KEYS. Extra keys, such as 3.0.0's `error`, are allowed. An
+    empty list, or a list of other objects with a `url` key (common in
+    REST APIs), isn't a chain, so its body is kept.
+    """
+    return (
+        isinstance(data, list)
+        and len(data) > 0
+        and all(
+            isinstance(item, dict) and PROBE_CORE_KEYS <= item.keys()
+            for item in data
+        )
+    )
+
+
 class ProbeError(TypedDict):
     """Why a probe got no HTTP response.
 
@@ -63,7 +89,9 @@ class Probe:
     """Probe data structure.
 
     Fields that come from the response are None when there was no
-    response; `error` is None when there was one.
+    response; `error` is None when there was one. `body` is also None
+    when the response was a downstream urlprobe's probes, which follow
+    this probe in the output instead.
 
     Attributes:
         url: URL that was probed
@@ -85,7 +113,7 @@ class Probe:
     elapsed_ms: Optional[float] = None
     final_url: Optional[str] = None
     headers: Optional[Dict[str, str]] = None
-    body: Any = None
+    body: Optional[str] = None
     error: Optional[ProbeError] = None
 
     @classmethod
@@ -181,10 +209,10 @@ def handle_request():
 
     try:
         downstream_probes = resp.json()
-        if isinstance(downstream_probes, list) and all(
-            isinstance(p, dict) and "url" in p for p in downstream_probes
-        ):
-            current_probe.body = downstream_probes
+        if _is_probe_chain(downstream_probes):
+            # Each downstream probe appears once, after this one. Nesting
+            # them in this probe's body too doubled the output per hop.
+            current_probe.body = None
             return jsonify([current_probe.__dict__] + downstream_probes)
     except (ValueError, json.JSONDecodeError):
         # Not a JSON response from a downstream probe,
