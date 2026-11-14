@@ -84,10 +84,24 @@ curl -s "http://localhost:8080/?url=https://api.ipify.org?format=json"
 
 ## Output
 
-The server will return a JSON object containing detailed information the request chain, including:
+The server returns a JSON array of probes, one per hop in the request chain, including:
 
 * **Edge Service Response:** Status code, headers, and body from the target service."
 * **Error Messages:** Detailed error messages for any failures encountered during the request chain.
+
+Each probe has these fields. If the request got no HTTP response (for example the connection was refused or timed out), the fields that come from the response are `null` and `error` says why. Otherwise `error` is `null`.
+
+When a hop's target is another `urlprobe`, that service's probes follow the hop's own probe in the array, and the hop's `body` is `null`. They're passed through as the downstream service reported them; `urlprobe` doesn't verify them.
+
+| Field | Description |
+| --- | --- |
+| `url` | The URL this hop requested. |
+| `status_code` | The HTTP status code of the final response. |
+| `elapsed_ms` | Approximate response time in milliseconds, from sending the first request to receiving the final response's headers, summed over any redirects. It excludes downloading the body. |
+| `final_url` | The URL after any redirects. |
+| `headers` | The final response's headers. |
+| `body` | The final response's body as text. `null` when the target is another `urlprobe`, whose probes follow this one in the array. |
+| `error` | `null`, or if there was no response, an object with `message` (why the request failed) and `elapsed_ms` (the time in milliseconds from starting the request until it failed, for example about 10,000 for a timeout). |
 
 ## Contributing
 
