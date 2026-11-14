@@ -86,6 +86,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   only once, after it in the array. Only a non-empty list of objects with all of url, status_code,
   elapsed_ms, final_url, headers and body is treated as a downstream chain.
 
+- **app**: A request that gets no HTTP response now has status_code, elapsed_ms, final_url, headers
+  and body set to null (status_code was 500 and body held the message). The new error field holds
+  {message, elapsed_ms} and is null on success.
+
+- **app**: Elapsed_ms is now in milliseconds (it was seconds, despite its name). Downstream probes
+  in a chain are passed through unchanged, so upgrade every urlprobe in a chain together.
+
+- **app**: For URLs that redirect, elapsed_ms now covers every redirect, not just the last one.
+
 
 ## v2.0.0 (2026-11-02)
 
